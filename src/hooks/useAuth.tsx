@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 
 type AuthUser = {
@@ -74,6 +74,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) throw error;
 
+      // Fix: Access user from data properly
       setUser(formatUser(data.user));
       toast.success("Signed in successfully!");
       navigate("/dashboard");
@@ -101,6 +102,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) throw error;
 
+      // Fix: Access user from data properly
       if (data.user) {
         setUser(formatUser(data.user));
         toast.success("Account created successfully!");
