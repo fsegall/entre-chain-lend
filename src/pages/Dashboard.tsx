@@ -50,7 +50,7 @@ const Dashboard = () => {
       console.log("Should show role selection:", shouldShowRoleSelection);
       setIsRoleSelectionVisible(shouldShowRoleSelection);
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, isRoleSelectionVisible]);
 
   const handleRoleSelection = async (role: 'lender' | 'borrower') => {
     if (!user) return;
@@ -117,7 +117,7 @@ const Dashboard = () => {
           Welcome, {user?.full_name || user?.email}
         </h1>
         
-        {isRoleSelectionVisible && (
+        {isRoleSelectionVisible ? (
           <div className="bg-white p-6 rounded-lg shadow-md mb-8">
             <h2 className="text-xl font-semibold text-blockloan-blue mb-4">Complete Your Profile</h2>
             <p className="text-gray-600 mb-6">
@@ -141,9 +141,9 @@ const Dashboard = () => {
               </Button>
             </div>
           </div>
-        )}
+        ): <>okay!!!</>}
         
-        {!isRoleSelectionVisible && (
+        {!isRoleSelectionVisible ? (
           // Regular dashboard content for users who have selected a role
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-lg shadow-md">
@@ -186,7 +186,7 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
-        )}
+        ): <>You have a role already!!!</>}
       </div>
       <Footer />
     </div>
