@@ -23,12 +23,14 @@ const SocialAuth = ({ redirectTo = "/dashboard" }: SocialAuthProps) => {
       });
       
       if (error) throw error;
+      
+      // We won't reach this point because the page will redirect to Google
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in with Google");
       console.error("Google sign-in error:", error);
       setIsLoading(false);
     }
-    // Note: We're not using finally here because the page will redirect and this component will unmount
+    // No finally block needed as the page will redirect
   };
 
   return (

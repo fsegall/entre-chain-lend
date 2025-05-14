@@ -3,25 +3,37 @@ import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    // Check if we have a session
     const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      
-      // Parse the redirectTo parameter from the URL if available
-      const params = new URLSearchParams(location.search);
-      const redirectTo = params.get('redirectTo') || '/dashboard';
-      
-      // If we have a session, redirect to the specified path or dashboard
-      if (data.session) {
-        navigate(redirectTo, { replace: true });
-      } else {
-        // If no session, redirect to login
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          throw error;
+        }
+        
+        // Parse the redirectTo parameter from the URL if available
+        const params = new URLSearchParams(location.search);
+        const redirectTo = params.get('redirectTo') || '/dashboard';
+        
+        // If we have a session, redirect to the specified path or dashboard
+        if (data.session) {
+          toast.success("Successfully signed in!");
+          navigate(redirectTo, { replace: true });
+        } else {
+          // If no session, redirect to login with an error message
+          toast.error("Authentication failed. Please try again.");
+          navigate('/login', { replace: true });
+        }
+      } catch (error: any) {
+        console.error("Auth callback error:", error);
+        toast.error(error.message || "Authentication error");
         navigate('/login', { replace: true });
       }
     };
