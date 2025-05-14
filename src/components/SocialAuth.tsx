@@ -27,11 +27,10 @@ const SocialAuth = ({ redirectTo = "/auth-callback" }: SocialAuthProps) => {
           redirectTo: redirectUrl,
           queryParams: {
             // Request offline access to get refresh token
-            access_type: 'offline',
+            access_type: 'offline', 
             // Force consent screen to ensure refresh token provision
             prompt: 'consent',
           },
-          // Add a random nonce to prevent CSRF attacks
           scopes: 'email profile',
         },
       });

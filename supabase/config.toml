@@ -3,5 +3,7 @@ project_id = "gkikgsfbwhlzassknnun"
 
 [auth.external.google]
 enabled = true
-client_id = "" # You'll need to add your Google OAuth client ID in the Supabase dashboard
-secret = "" # You'll need to add your Google OAuth client secret in the Supabase dashboard
+client_id = "GOOGLE_CLIENT_ID" # You'll need to add your Google OAuth client ID in the Supabase dashboard
+secret = "GOOGLE_CLIENT_SECRET" # You'll need to add your Google OAuth client secret in the Supabase dashboard
+scope = "email profile"
+# The redirect URL will be automatically set to your Supabase project URL + /auth/v1/callback
