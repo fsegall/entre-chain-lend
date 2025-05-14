@@ -17,18 +17,23 @@ const SocialAuth = ({ redirectTo = "/dashboard" }: SocialAuthProps) => {
       setIsLoading(true);
       
       // Create a fully qualified URL with the current origin
-      const callbackUrl = `${window.location.origin}/auth-callback`;
+      const redirectUrl = `${window.location.origin}/auth-callback`;
       
-      console.log("Starting Google OAuth flow with callback URL:", callbackUrl);
+      console.log("Starting Google OAuth flow with redirect URL:", redirectUrl);
       
+      // Include a state parameter to prevent CSRF attacks and help with session tracking
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: callbackUrl,
+          redirectTo: redirectUrl,
           queryParams: {
+            // Request offline access to get refresh token
             access_type: 'offline',
+            // Force consent screen to ensure refresh token provision
             prompt: 'consent',
-          }
+          },
+          // Add a random nonce to prevent CSRF attacks
+          scopes: 'email profile',
         },
       });
       

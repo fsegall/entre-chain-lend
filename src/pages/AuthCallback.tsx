@@ -11,9 +11,24 @@ const AuthCallback = () => {
   const [isProcessing, setIsProcessing] = useState(true);
 
   useEffect(() => {
+    // Add a guard against multiple callback processing
+    const hasProcessed = sessionStorage.getItem("auth_callback_processed");
+    
     const handleAuthCallback = async () => {
       try {
-        console.log("Auth callback processing started");
+        console.log("Auth callback processing started at:", new Date().toISOString());
+        console.log("URL hash:", window.location.hash);
+        console.log("URL search params:", window.location.search);
+        
+        // Check if we've already processed this callback to prevent loops
+        if (hasProcessed) {
+          console.log("Auth callback already processed, avoiding duplicates");
+          navigate("/dashboard", { replace: true });
+          return;
+        }
+        
+        // Mark this callback as processed to prevent loops
+        sessionStorage.setItem("auth_callback_processed", "true");
         
         // First check if we have a valid session to avoid redirect loops
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -32,6 +47,10 @@ const AuthCallback = () => {
           console.log("Authentication successful, redirecting to dashboard");
           toast.success("Successfully signed in!");
           
+          // Clear any potential state that might cause loops
+          sessionStorage.removeItem("supabase.auth.token");
+          localStorage.removeItem("supabase.auth.token");
+          
           // Add a small delay to ensure toast is shown before navigation
           setTimeout(() => {
             navigate("/dashboard", { replace: true });
@@ -39,7 +58,10 @@ const AuthCallback = () => {
         } else {
           // If we get here and there's a hash or query string, we're likely in a callback but authentication failed
           if (window.location.hash || window.location.search) {
-            console.error("Auth callback received but no session was created");
+            console.error("Auth callback received but no session was created", {
+              hash: window.location.hash, 
+              search: window.location.search
+            });
             throw new Error("Authentication failed. Please try again.");
           } else {
             // If we get here and there's no hash or query, the user probably navigated here directly
@@ -51,6 +73,10 @@ const AuthCallback = () => {
         console.error("Auth callback error:", error);
         setError(error.message || "Authentication error");
         toast.error(error.message || "Authentication error");
+        
+        // Clear any problematic auth state
+        sessionStorage.removeItem("supabase.auth.token");
+        localStorage.removeItem("supabase.auth.token");
         
         // Redirect to login after error
         setTimeout(() => {
