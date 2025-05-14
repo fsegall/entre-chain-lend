@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   // Method to refresh user profile data
-  const refreshUserProfile = async () => {
+  const refreshUserProfile = async (): Promise<void> => {
     if (!session?.user) return;
     
     try {
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return updatedUser;
       });
       
-      return { profile, roles };
+      // Return value removed to match Promise<void> return type
     } catch (error) {
       console.error("Error refreshing user profile:", error);
       throw error;
