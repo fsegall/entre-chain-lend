@@ -46,11 +46,27 @@ const AuthCallback = () => {
         
         if (sessionData.session) {
           // Successfully authenticated
-          console.log("Authentication successful, redirecting to dashboard");
+          console.log("Authentication successful, refreshing user profile");
           toast.success("Successfully signed in!");
           
           // Refresh user profile to load roles and other data
           await refreshUserProfile();
+          
+          // Make sure the user profile is marked as not onboarded for Google auth users
+          // This ensures they will see the role selection screen
+          if (sessionData.session.user) {
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .update({ is_onboarded: false })
+              .eq('id', sessionData.session.user.id)
+              .is('role_selection', null);
+            
+            if (profileError) {
+              console.warn("Failed to update onboarding status:", profileError);
+            } else {
+              console.log("Set user as not onboarded to show role selection");
+            }
+          }
           
           // Clear any potential state that might cause loops
           sessionStorage.removeItem("supabase.auth.token");

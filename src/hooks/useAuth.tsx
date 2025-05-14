@@ -23,19 +23,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!session?.user) return;
     
     try {
+      console.log("Refreshing user profile for:", session.user.id);
       const { profile, roles } = await fetchUserProfile(session.user.id);
+      
+      console.log("Profile data received:", { 
+        profile,
+        roles,
+        email: session.user.email
+      });
       
       // Update the user with profile data and roles
       setUser(prev => {
         if (!prev) return null;
-        return {
+        
+        const updatedUser = {
           ...prev,
           ...profile,
           roles: roles
         };
+        
+        console.log("Updated user state:", updatedUser);
+        return updatedUser;
       });
+      
+      return { profile, roles };
     } catch (error) {
       console.error("Error refreshing user profile:", error);
+      throw error;
     }
   };
   

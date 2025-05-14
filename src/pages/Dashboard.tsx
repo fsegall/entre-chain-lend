@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
@@ -11,10 +11,26 @@ import { supabase } from "@/integrations/supabase/client";
 const Dashboard = () => {
   const { user, loading, refreshUserProfile } = useAuth();
   const navigate = useNavigate();
+  const [isRoleSelectionVisible, setIsRoleSelectionVisible] = useState(false);
   
   useEffect(() => {
     if (!loading && !user) {
       navigate("/login");
+    }
+    
+    // Determine if we should show role selection
+    if (user) {
+      const shouldShowRoleSelection = 
+        user.roles?.includes('visitor') || 
+        !user.role_selection ||
+        !user.is_onboarded;
+      
+      setIsRoleSelectionVisible(shouldShowRoleSelection);
+      console.log("Role selection visibility:", shouldShowRoleSelection, {
+        roles: user.roles,
+        role_selection: user.role_selection,
+        is_onboarded: user.is_onboarded
+      });
     }
   }, [user, loading, navigate]);
 
@@ -55,6 +71,9 @@ const Dashboard = () => {
       // Refresh user profile to get updated roles
       await refreshUserProfile();
       
+      // Hide role selection UI
+      setIsRoleSelectionVisible(false);
+      
       toast.success(`You are now registered as a ${role}!`);
     } catch (error: any) {
       console.error("Error updating role:", error);
@@ -70,9 +89,6 @@ const Dashboard = () => {
     );
   }
 
-  // Show role selection if user is a visitor (hasn't selected role yet)
-  const isVisitor = user?.roles?.includes('visitor') || !user?.is_onboarded;
-
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -81,7 +97,7 @@ const Dashboard = () => {
           Welcome, {user?.full_name || user?.email}
         </h1>
         
-        {isVisitor ? (
+        {isRoleSelectionVisible ? (
           <div className="bg-white p-6 rounded-lg shadow-md mb-8">
             <h2 className="text-xl font-semibold text-blockloan-blue mb-4">Complete Your Profile</h2>
             <p className="text-gray-600 mb-6">
