@@ -28,6 +28,7 @@ const SocialAuth = ({ redirectTo = "/dashboard" }: SocialAuthProps) => {
       console.error("Google sign-in error:", error);
       setIsLoading(false);
     }
+    // Note: We're not using finally here because the page will redirect and this component will unmount
   };
 
   return (
