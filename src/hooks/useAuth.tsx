@@ -2,8 +2,10 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { Session, User } from "@supabase/supabase-js";
 
-type User = {
+type AuthUser = {
   id: string;
   email: string;
   full_name?: string;
@@ -11,7 +13,7 @@ type User = {
 };
 
 type AuthContextType = {
-  user: User | null;
+  user: AuthUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
@@ -21,51 +23,63 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Format Supabase user data to match our AuthUser type
+  const formatUser = (user: User | null): AuthUser | null => {
+    if (!user) return null;
+    
+    return {
+      id: user.id,
+      email: user.email || '',
+      full_name: user.user_metadata?.full_name,
+      avatar_url: user.user_metadata?.avatar_url,
+    };
+  };
+
   // Check for existing session on mount
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        // This is a mock implementation since we're using Auth0 via Supabase
-        // In a real implementation, you would use the Supabase client to check the session
-        const storedUser = localStorage.getItem("blockLoanUser");
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session?.user) {
+          setUser(formatUser(session.user));
+        } else {
+          setUser(null);
         }
-      } catch (error) {
-        console.error("Session check error:", error);
-      } finally {
         setLoading(false);
       }
+    );
+
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(formatUser(session?.user || null));
+      setLoading(false);
+    });
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
     };
-    
-    checkSession();
   }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      // Mock implementation - in a real app, use the Supabase client
-      // with Auth0 integration to sign in the user
-      console.log("Signing in with:", email, password);
-      
-      // Simulate a successful login
-      const mockUser = {
-        id: "user_" + Math.random().toString(36).substr(2, 9),
-        email: email,
-        full_name: email.split('@')[0],
-      };
-      
-      setUser(mockUser);
-      localStorage.setItem("blockLoanUser", JSON.stringify(mockUser));
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      setUser(formatUser(data.user));
       toast.success("Signed in successfully!");
       navigate("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Sign in error:", error);
-      toast.error("Failed to sign in. Please check your credentials.");
+      toast.error(error.message || "Failed to sign in. Please check your credentials.");
       throw error;
     } finally {
       setLoading(false);
@@ -75,24 +89,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
       setLoading(true);
-      // Mock implementation - in a real app, use the Supabase client
-      // with Auth0 integration to register the user
-      console.log("Signing up with:", email, password, fullName);
-      
-      // Simulate a successful registration
-      const mockUser = {
-        id: "user_" + Math.random().toString(36).substr(2, 9),
-        email: email,
-        full_name: fullName,
-      };
-      
-      setUser(mockUser);
-      localStorage.setItem("blockLoanUser", JSON.stringify(mockUser));
-      toast.success("Account created successfully!");
-      navigate("/dashboard");
-    } catch (error) {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        setUser(formatUser(data.user));
+        toast.success("Account created successfully!");
+        navigate("/dashboard");
+      } else {
+        // Some Supabase instances require email verification
+        toast.success("Please check your email to confirm your account.");
+      }
+    } catch (error: any) {
       console.error("Sign up error:", error);
-      toast.error("Failed to create account. Please try again.");
+      toast.error(error.message || "Failed to create account. Please try again.");
       throw error;
     } finally {
       setLoading(false);
@@ -102,14 +121,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       setLoading(true);
-      // Mock implementation - in a real app, use the Supabase client to sign out
-      localStorage.removeItem("blockLoanUser");
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) throw error;
+      
       setUser(null);
       toast.success("Signed out successfully");
       navigate("/");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Sign out error:", error);
-      toast.error("Failed to sign out. Please try again.");
+      toast.error(error.message || "Failed to sign out. Please try again.");
     } finally {
       setLoading(false);
     }
