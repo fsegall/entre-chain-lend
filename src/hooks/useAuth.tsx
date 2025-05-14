@@ -238,10 +238,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (updateError) throw updateError;
       
       // Insert the role into user_roles if it doesn't exist
-      const { error: insertError } = await supabase.rpc('assign_role', { 
-        user_id: user.id, 
-        role_name: role 
-      });
+      // Fixed: Use direct insert instead of RPC
+      const { error: insertError } = await supabase
+        .from('user_roles')
+        .insert({ 
+          user_id: user.id,
+          role: role
+        })
+        .onConflict(['user_id', 'role'])
+        .ignore();
       
       if (insertError) throw insertError;
       
