@@ -4,11 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(true);
+  const { refreshUserProfile } = useAuth();
 
   useEffect(() => {
     // Add a guard against multiple callback processing
@@ -46,6 +48,9 @@ const AuthCallback = () => {
           // Successfully authenticated
           console.log("Authentication successful, redirecting to dashboard");
           toast.success("Successfully signed in!");
+          
+          // Refresh user profile to load roles and other data
+          await refreshUserProfile();
           
           // Clear any potential state that might cause loops
           sessionStorage.removeItem("supabase.auth.token");
@@ -88,7 +93,7 @@ const AuthCallback = () => {
     };
     
     handleAuthCallback();
-  }, [navigate]);
+  }, [navigate, refreshUserProfile]);
 
   return (
     <div className="h-screen w-screen flex items-center justify-center bg-gray-50">

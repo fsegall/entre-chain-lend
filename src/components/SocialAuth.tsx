@@ -9,7 +9,7 @@ interface SocialAuthProps {
   redirectTo?: string;
 }
 
-const SocialAuth = ({ redirectTo = "/dashboard" }: SocialAuthProps) => {
+const SocialAuth = ({ redirectTo = "/auth-callback" }: SocialAuthProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleSignIn = async () => {
@@ -17,11 +17,10 @@ const SocialAuth = ({ redirectTo = "/dashboard" }: SocialAuthProps) => {
       setIsLoading(true);
       
       // Create a fully qualified URL with the current origin
-      const redirectUrl = `${window.location.origin}/auth-callback`;
+      const redirectUrl = `${window.location.origin}${redirectTo}`;
       
       console.log("Starting Google OAuth flow with redirect URL:", redirectUrl);
       
-      // Include a state parameter to prevent CSRF attacks and help with session tracking
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

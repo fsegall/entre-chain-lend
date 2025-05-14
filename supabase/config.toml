@@ -3,3 +3,5 @@ project_id = "gkikgsfbwhlzassknnun"
 
 [auth.external.google]
 enabled = true
+client_id = "" # You'll need to add your Google OAuth client ID in the Supabase dashboard
+secret = "" # You'll need to add your Google OAuth client secret in the Supabase dashboard

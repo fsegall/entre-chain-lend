@@ -10,25 +10,31 @@ type AuthUser = {
   email: string;
   full_name?: string;
   avatar_url?: string;
+  is_onboarded?: boolean;
+  role_selection?: string;
+  roles?: string[];
 };
 
 type AuthContextType = {
   user: AuthUser | null;
+  session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshUserProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   // Format Supabase user data to match our AuthUser type
-  const formatUser = (user: User | null): AuthUser | null => {
+  const formatUser = (user: User | null, session: Session | null): AuthUser | null => {
     if (!user) return null;
     
     return {
@@ -39,22 +45,78 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   };
 
+  const refreshUserProfile = async () => {
+    if (!session?.user) return;
+    
+    try {
+      // Get the user's profile data
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (profileError) throw profileError;
+      
+      // Get user's roles
+      const { data: roles, error: rolesError } = await supabase
+        .rpc('get_user_roles', { _user_id: session.user.id });
+        
+      if (rolesError) throw rolesError;
+      
+      // Update the user with profile data and roles
+      setUser(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          ...profile,
+          roles: roles || []
+        };
+      });
+      
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+    }
+  };
+  
   // Check for existing session on mount
   useEffect(() => {
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (session?.user) {
-          setUser(formatUser(session.user));
+      async (event, newSession) => {
+        console.log("Auth state changed:", event);
+        setSession(newSession);
+        
+        if (newSession?.user) {
+          const formattedUser = formatUser(newSession.user, newSession);
+          setUser(formattedUser);
+          
+          // Defer additional data loading to avoid auth state deadlocks
+          setTimeout(() => {
+            refreshUserProfile();
+          }, 0);
         } else {
           setUser(null);
         }
+        
         setLoading(false);
       }
     );
 
-    // Initial session check
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(formatUser(session?.user || null));
+      setSession(session);
+      
+      if (session?.user) {
+        const formattedUser = formatUser(session.user, session);
+        setUser(formattedUser);
+        
+        // Defer additional data loading to avoid auth state deadlocks
+        setTimeout(() => {
+          refreshUserProfile();
+        }, 0);
+      }
+      
       setLoading(false);
     });
 
@@ -75,8 +137,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) throw error;
 
       // Fix: Access user from data properly
-      setUser(formatUser(data.user));
+      setSession(data.session);
+      setUser(formatUser(data.user, data.session));
       toast.success("Signed in successfully!");
+      
+      // Refresh user profile to get roles and additional data
+      setTimeout(() => {
+        refreshUserProfile();
+      }, 0);
+      
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Sign in error:", error);
@@ -104,7 +173,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       // Fix: Access user from data properly
       if (data.user) {
-        setUser(formatUser(data.user));
+        setSession(data.session);
+        setUser(formatUser(data.user, data.session));
+        
+        // Refresh user profile to get roles and additional data
+        setTimeout(() => {
+          refreshUserProfile();
+        }, 0);
+        
         toast.success("Account created successfully!");
         navigate("/dashboard");
       } else {
@@ -128,6 +204,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) throw error;
       
       setUser(null);
+      setSession(null);
       toast.success("Signed out successfully");
       navigate("/");
     } catch (error: any) {
@@ -139,7 +216,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      loading, 
+      signIn, 
+      signUp, 
+      signOut,
+      refreshUserProfile 
+    }}>
       {children}
     </AuthContext.Provider>
   );
