@@ -1,31 +1,14 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Session, User } from "@supabase/supabase-js";
-
-type AuthUser = {
-  id: string;
-  email: string;
-  full_name?: string;
-  avatar_url?: string;
-  is_onboarded?: boolean;
-  role_selection?: string;
-  roles?: string[];
-  wallet_address?: string; // Add wallet address for blockchain integration
-};
-
-type AuthContextType = {
-  user: AuthUser | null;
-  session: Session | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  refreshUserProfile: () => Promise<void>;
-  setUserRole: (role: 'borrower' | 'lender') => Promise<void>; // Add role selection function
-  connectWallet: (address: string) => Promise<void>; // Add wallet connection function
-};
+import { Session } from "@supabase/supabase-js";
+import { AuthUser, AuthContextType } from "./auth/types";
+import { formatUser } from "./auth/utils";
+import { fetchUserProfile } from "./auth/profileService";
+import { setUserRole as updateUserRole, connectWallet as updateWalletAddress } from "./auth/roleService";
+import * as authService from "./auth/authService";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -35,37 +18,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Format Supabase user data to match our AuthUser type
-  const formatUser = (user: User | null, session: Session | null): AuthUser | null => {
-    if (!user) return null;
-    
-    return {
-      id: user.id,
-      email: user.email || '',
-      full_name: user.user_metadata?.full_name,
-      avatar_url: user.user_metadata?.avatar_url,
-      wallet_address: user.user_metadata?.wallet_address,
-    };
-  };
-
+  // Method to refresh user profile data
   const refreshUserProfile = async () => {
     if (!session?.user) return;
     
     try {
-      // Get the user's profile data
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-        
-      if (profileError) throw profileError;
-      
-      // Get user's roles
-      const { data: roles, error: rolesError } = await supabase
-        .rpc('get_user_roles', { _user_id: session.user.id });
-        
-      if (rolesError) throw rolesError;
+      const { profile, roles } = await fetchUserProfile(session.user.id);
       
       // Update the user with profile data and roles
       setUser(prev => {
@@ -73,12 +31,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return {
           ...prev,
           ...profile,
-          roles: roles || []
+          roles: roles
         };
       });
-      
     } catch (error) {
-      console.error("Error fetching user profile:", error);
+      console.error("Error refreshing user profile:", error);
     }
   };
   
@@ -132,16 +89,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      // Fix: Access user from data properly
-      setSession(data.session);
-      setUser(formatUser(data.user, data.session));
+      const result = await authService.signIn(email, password);
+      
+      // Update state
+      setSession(result.session);
+      setUser(result.user);
       toast.success("Signed in successfully!");
       
       // Refresh user profile to get roles and additional data
@@ -162,22 +114,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-        },
-      });
+      const result = await authService.signUp(email, password, fullName);
 
-      if (error) throw error;
-
-      // Fix: Access user from data properly
-      if (data.user) {
-        setSession(data.session);
-        setUser(formatUser(data.user, data.session));
+      if (result.user) {
+        setSession(result.session);
+        setUser(result.user);
         
         // Refresh user profile to get roles and additional data
         setTimeout(() => {
@@ -202,9 +143,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) throw error;
+      await authService.signOut();
       
       setUser(null);
       setSession(null);
@@ -218,7 +157,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // New function to set user role
+  // Role selection function
   const setUserRole = async (role: 'borrower' | 'lender') => {
     if (!user) {
       toast.error("You must be logged in to set a role");
@@ -227,34 +166,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     try {
       setLoading(true);
-      
-      // Update the profile with the selected role
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ role_selection: role })
-        .eq('id', user.id);
-        
-      if (updateError) throw updateError;
-      
-      // Check if the role already exists for this user before inserting
-      const { data: existingRole } = await supabase
-        .from('user_roles')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('role', role)
-        .maybeSingle();
-      
-      // Only insert if the role doesn't already exist
-      if (!existingRole) {
-        const { error: insertError } = await supabase
-          .from('user_roles')
-          .insert({ 
-            user_id: user.id,
-            role: role
-          });
-        
-        if (insertError) throw insertError;
-      }
+      await updateUserRole(user.id, role);
       
       // Refresh user profile to get updated roles
       await refreshUserProfile();
@@ -268,7 +180,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
   
-  // New function to connect wallet
+  // Wallet connection function
   const connectWallet = async (address: string) => {
     if (!user) {
       toast.error("You must be logged in to connect a wallet");
@@ -277,13 +189,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     try {
       setLoading(true);
-      
-      // Update the user metadata with the wallet address
-      const { error } = await supabase.auth.updateUser({
-        data: { wallet_address: address }
-      });
-      
-      if (error) throw error;
+      await updateWalletAddress(user.id, address);
       
       // Update local user state
       setUser(prev => {
