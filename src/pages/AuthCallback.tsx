@@ -1,28 +1,33 @@
 
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Check if we have a session
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       
-      // If we have a session, redirect to dashboard
+      // Parse the redirectTo parameter from the URL if available
+      const params = new URLSearchParams(location.search);
+      const redirectTo = params.get('redirectTo') || '/dashboard';
+      
+      // If we have a session, redirect to the specified path or dashboard
       if (data.session) {
-        navigate("/dashboard", { replace: true });
+        navigate(redirectTo, { replace: true });
       } else {
         // If no session, redirect to login
-        navigate("/login", { replace: true });
+        navigate('/login', { replace: true });
       }
     };
     
     checkSession();
-  }, [navigate]);
+  }, [navigate, location.search]);
 
   return (
     <div className="h-screen w-screen flex items-center justify-center">

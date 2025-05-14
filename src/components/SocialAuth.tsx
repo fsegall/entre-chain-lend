@@ -1,10 +1,9 @@
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 
 interface SocialAuthProps {
   redirectTo?: string;
@@ -12,21 +11,6 @@ interface SocialAuthProps {
 
 const SocialAuth = ({ redirectTo = "/dashboard" }: SocialAuthProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-
-  // Handle auth state change from redirects
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        toast.success("Successfully signed in!");
-        navigate(redirectTo);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate, redirectTo]);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -34,7 +18,7 @@ const SocialAuth = ({ redirectTo = "/dashboard" }: SocialAuthProps) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth-callback`,
+          redirectTo: `${window.location.origin}/auth-callback?redirectTo=${redirectTo}`,
         },
       });
       
@@ -42,7 +26,6 @@ const SocialAuth = ({ redirectTo = "/dashboard" }: SocialAuthProps) => {
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in with Google");
       console.error("Google sign-in error:", error);
-    } finally {
       setIsLoading(false);
     }
   };
