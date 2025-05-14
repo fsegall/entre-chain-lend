@@ -20,10 +20,14 @@ const Dashboard = () => {
     
     // Determine if we should show role selection
     if (user) {
+      // Show role selection if ANY of these conditions are true:
+      // 1. User has visitor role
+      // 2. User has no role_selection set
+      // 3. User is not onboarded
       const shouldShowRoleSelection = 
-        user.roles?.includes('visitor') || 
+        (user.roles && user.roles.includes('visitor')) || 
         !user.role_selection ||
-        !user.is_onboarded;
+        user.is_onboarded === false;
       
       setIsRoleSelectionVisible(shouldShowRoleSelection);
       console.log("Role selection visibility:", shouldShowRoleSelection, {

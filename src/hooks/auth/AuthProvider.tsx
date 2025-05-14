@@ -129,6 +129,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const result = await authService.signUp(email, password, fullName);
 
       if (result.user) {
+        // Create or update the profile to ensure it's marked as not onboarded
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({ 
+            id: result.user.id,
+            full_name: fullName,
+            is_onboarded: false,  // Explicitly set to false to ensure role selection appears
+            role_selection: null   // Clear any existing role to force selection
+          });
+          
+        if (profileError) {
+          console.error("Profile setup error:", profileError);
+          toast.error("Account created but profile setup failed");
+        }
+        
+        // Insert visitor role to ensure proper role selection flow
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: result.user.id, role: 'visitor' });
+          
+        if (roleError) {
+          console.error("Role setup error:", roleError);
+        }
+        
         setSession(result.session);
         setUser(result.user);
         

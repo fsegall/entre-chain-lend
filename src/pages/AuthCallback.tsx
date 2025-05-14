@@ -49,24 +49,26 @@ const AuthCallback = () => {
           console.log("Authentication successful, refreshing user profile");
           toast.success("Successfully signed in!");
           
-          // Refresh user profile to load roles and other data
-          await refreshUserProfile();
-          
-          // Make sure the user profile is marked as not onboarded for Google auth users
-          // This ensures they will see the role selection screen
+          // For new sign-ups or oauth logins, ensure they are marked as needing role selection
           if (sessionData.session.user) {
+            // Always update the profile for new social logins to ensure role selection is shown
             const { error: profileError } = await supabase
               .from('profiles')
-              .update({ is_onboarded: false })
-              .eq('id', sessionData.session.user.id)
-              .is('role_selection', null);
+              .upsert({ 
+                id: sessionData.session.user.id,
+                is_onboarded: false,  // Set to false to ensure role selection appears
+                role_selection: null  // Clear any existing role to force selection
+              });
             
             if (profileError) {
               console.warn("Failed to update onboarding status:", profileError);
             } else {
-              console.log("Set user as not onboarded to show role selection");
+              console.log("User marked as needing role selection");
             }
           }
+          
+          // Refresh user profile to get updated roles and other data
+          await refreshUserProfile();
           
           // Clear any potential state that might cause loops
           sessionStorage.removeItem("supabase.auth.token");
