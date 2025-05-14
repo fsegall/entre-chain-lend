@@ -41,7 +41,7 @@ const Dashboard = () => {
       setIsRoleSelectionVisible(shouldShowRoleSelection);
       console.log("Role selection visibility:", shouldShowRoleSelection);
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, isRoleSelectionVisible]);
 
   const handleRoleSelection = async (role: 'lender' | 'borrower') => {
     if (!user) return;
