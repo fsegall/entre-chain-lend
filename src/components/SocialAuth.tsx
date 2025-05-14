@@ -15,22 +15,27 @@ const SocialAuth = ({ redirectTo = "/dashboard" }: SocialAuthProps) => {
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
+      
+      // Log the redirect URL to help with debugging
+      const callbackUrl = `${window.location.origin}/auth-callback?redirectTo=${encodeURIComponent(redirectTo)}`;
+      console.log("Google sign-in redirect URL:", callbackUrl);
+      
+      const { error, data } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth-callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+          redirectTo: callbackUrl,
         },
       });
       
       if (error) throw error;
       
-      // We won't reach this point because the page will redirect to Google
+      // We shouldn't reach this point because the page will redirect to Google
+      console.log("OAuth initiation response:", data);
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in with Google");
       console.error("Google sign-in error:", error);
       setIsLoading(false);
     }
-    // No finally block needed as the page will redirect
   };
 
   return (
