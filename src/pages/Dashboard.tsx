@@ -20,21 +20,24 @@ const Dashboard = () => {
     
     // Determine if we should show role selection
     if (user) {
+      console.log("User data for role detection:", {
+        id: user.id,
+        roles: user.roles,
+        role_selection: user.role_selection,
+        is_onboarded: user.is_onboarded
+      });
+      
       // Show role selection if ANY of these conditions are true:
       // 1. User has visitor role
       // 2. User has no role_selection set
-      // 3. User is not onboarded
+      // 3. User is not onboarded (is_onboarded is explicitly false)
       const shouldShowRoleSelection = 
         (user.roles && user.roles.includes('visitor')) || 
         !user.role_selection ||
         user.is_onboarded === false;
       
       setIsRoleSelectionVisible(shouldShowRoleSelection);
-      console.log("Role selection visibility:", shouldShowRoleSelection, {
-        roles: user.roles,
-        role_selection: user.role_selection,
-        is_onboarded: user.is_onboarded
-      });
+      console.log("Role selection visibility:", shouldShowRoleSelection);
     }
   }, [user, loading, navigate]);
 
@@ -42,6 +45,8 @@ const Dashboard = () => {
     if (!user) return;
     
     try {
+      console.log("Setting user role to:", role);
+      
       // Update profile with role selection
       const { error: updateError } = await supabase
         .from('profiles')

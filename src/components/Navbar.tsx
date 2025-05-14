@@ -11,6 +11,14 @@ const Navbar = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
+  };
+
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -48,7 +56,7 @@ const Navbar = () => {
                 <Button 
                   variant="outline" 
                   className="border-blockloan-teal text-blockloan-teal hover:bg-blockloan-teal/10"
-                  onClick={() => signOut()}
+                  onClick={handleSignOut}
                 >
                   Sign Out
                 </Button>
@@ -124,7 +132,7 @@ const Navbar = () => {
                   variant="outline" 
                   className="border-blockloan-teal text-blockloan-teal w-full"
                   onClick={() => {
-                    signOut();
+                    handleSignOut();
                     setIsMenuOpen(false);
                   }}
                 >

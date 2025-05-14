@@ -65,6 +65,20 @@ const AuthCallback = () => {
             } else {
               console.log("User marked as needing role selection");
             }
+            
+            // Also ensure they have the visitor role
+            const { error: roleError } = await supabase
+              .from('user_roles')
+              .upsert({ 
+                user_id: sessionData.session.user.id,
+                role: 'visitor'
+              });
+              
+            if (roleError) {
+              console.warn("Failed to set visitor role:", roleError);
+            } else {
+              console.log("Visitor role added or confirmed");
+            }
           }
           
           // Refresh user profile to get updated roles and other data
