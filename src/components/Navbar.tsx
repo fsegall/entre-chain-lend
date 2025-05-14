@@ -1,12 +1,15 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import WalletConnect from "./WalletConnect";
+import { useAuth } from "@/hooks/useAuth";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
@@ -29,21 +32,43 @@ const Navbar = () => {
                 <Link to="/about" className="px-3 py-2 rounded-md text-sm font-medium text-blockloan-gray hover:text-blockloan-teal">
                   How It Works
                 </Link>
-                <Link to="/dashboard" className="px-3 py-2 rounded-md text-sm font-medium text-blockloan-gray hover:text-blockloan-teal">
-                  Dashboard
-                </Link>
+                {user && (
+                  <Link to="/dashboard" className="px-3 py-2 rounded-md text-sm font-medium text-blockloan-gray hover:text-blockloan-teal">
+                    Dashboard
+                  </Link>
+                )}
               </div>
             </div>
           </div>
           <div className="hidden md:block">
             <div className="flex items-center gap-4">
               <WalletConnect />
-              <Button variant="outline" className="border-blockloan-teal text-blockloan-teal hover:bg-blockloan-teal/10">
-                Sign In
-              </Button>
-              <Button className="bg-blockloan-blue text-white hover:bg-blockloan-blue/90">
-                Register
-              </Button>
+              
+              {user ? (
+                <Button 
+                  variant="outline" 
+                  className="border-blockloan-teal text-blockloan-teal hover:bg-blockloan-teal/10"
+                  onClick={() => signOut()}
+                >
+                  Sign Out
+                </Button>
+              ) : (
+                <>
+                  <Button 
+                    variant="outline" 
+                    className="border-blockloan-teal text-blockloan-teal hover:bg-blockloan-teal/10"
+                    onClick={() => navigate('/login')}
+                  >
+                    Sign In
+                  </Button>
+                  <Button 
+                    className="bg-blockloan-blue text-white hover:bg-blockloan-blue/90"
+                    onClick={() => navigate('/signup')}
+                  >
+                    Register
+                  </Button>
+                </>
+              )}
             </div>
           </div>
           <div className="md:hidden">
@@ -82,21 +107,52 @@ const Navbar = () => {
             >
               How It Works
             </Link>
-            <Link 
-              to="/dashboard" 
-              className="block px-3 py-2 rounded-md text-base font-medium text-blockloan-gray hover:text-blockloan-teal"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Dashboard
-            </Link>
+            {user && (
+              <Link 
+                to="/dashboard" 
+                className="block px-3 py-2 rounded-md text-base font-medium text-blockloan-gray hover:text-blockloan-teal"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Dashboard
+              </Link>
+            )}
             <div className="pt-4 flex flex-col gap-2">
               <WalletConnect />
-              <Button variant="outline" className="border-blockloan-teal text-blockloan-teal w-full">
-                Sign In
-              </Button>
-              <Button className="bg-blockloan-blue text-white w-full">
-                Register
-              </Button>
+              
+              {user ? (
+                <Button 
+                  variant="outline" 
+                  className="border-blockloan-teal text-blockloan-teal w-full"
+                  onClick={() => {
+                    signOut();
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  Sign Out
+                </Button>
+              ) : (
+                <>
+                  <Button 
+                    variant="outline" 
+                    className="border-blockloan-teal text-blockloan-teal w-full"
+                    onClick={() => {
+                      navigate('/login');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    Sign In
+                  </Button>
+                  <Button 
+                    className="bg-blockloan-blue text-white w-full"
+                    onClick={() => {
+                      navigate('/signup');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    Register
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
