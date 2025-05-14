@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Loader2 } from "lucide-react";
+import SocialAuth from "@/components/SocialAuth";
 
 const Signup = () => {
   const [fullName, setFullName] = useState("");
@@ -135,6 +136,8 @@ const Signup = () => {
                 "Create Account"
               )}
             </Button>
+            
+            <SocialAuth />
             
             <div className="text-center mt-4">
               <p className="text-sm text-gray-600">
