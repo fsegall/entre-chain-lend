@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -237,18 +236,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
       if (updateError) throw updateError;
       
-      // Insert the role into user_roles if it doesn't exist
-      // Fixed: Use direct insert instead of RPC
-      const { error: insertError } = await supabase
+      // Check if the role already exists for this user before inserting
+      const { data: existingRole } = await supabase
         .from('user_roles')
-        .insert({ 
-          user_id: user.id,
-          role: role
-        })
-        .onConflict(['user_id', 'role'])
-        .ignore();
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('role', role)
+        .maybeSingle();
       
-      if (insertError) throw insertError;
+      // Only insert if the role doesn't already exist
+      if (!existingRole) {
+        const { error: insertError } = await supabase
+          .from('user_roles')
+          .insert({ 
+            user_id: user.id,
+            role: role
+          });
+        
+        if (insertError) throw insertError;
+      }
       
       // Refresh user profile to get updated roles
       await refreshUserProfile();
