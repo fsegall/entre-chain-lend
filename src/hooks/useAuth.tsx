@@ -13,6 +13,7 @@ type AuthUser = {
   is_onboarded?: boolean;
   role_selection?: string;
   roles?: string[];
+  wallet_address?: string; // Add wallet address for blockchain integration
 };
 
 type AuthContextType = {
@@ -23,6 +24,8 @@ type AuthContextType = {
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
+  setUserRole: (role: 'borrower' | 'lender') => Promise<void>; // Add role selection function
+  connectWallet: (address: string) => Promise<void>; // Add wallet connection function
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,6 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       email: user.email || '',
       full_name: user.user_metadata?.full_name,
       avatar_url: user.user_metadata?.avatar_url,
+      wallet_address: user.user_metadata?.wallet_address,
     };
   };
 
@@ -215,6 +219,79 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // New function to set user role
+  const setUserRole = async (role: 'borrower' | 'lender') => {
+    if (!user) {
+      toast.error("You must be logged in to set a role");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Update the profile with the selected role
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ role_selection: role })
+        .eq('id', user.id);
+        
+      if (updateError) throw updateError;
+      
+      // Insert the role into user_roles if it doesn't exist
+      const { error: insertError } = await supabase.rpc('assign_role', { 
+        user_id: user.id, 
+        role_name: role 
+      });
+      
+      if (insertError) throw insertError;
+      
+      // Refresh user profile to get updated roles
+      await refreshUserProfile();
+      
+      toast.success(`You are now registered as a ${role}`);
+    } catch (error: any) {
+      console.error("Role selection error:", error);
+      toast.error(error.message || `Failed to set role as ${role}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // New function to connect wallet
+  const connectWallet = async (address: string) => {
+    if (!user) {
+      toast.error("You must be logged in to connect a wallet");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Update the user metadata with the wallet address
+      const { error } = await supabase.auth.updateUser({
+        data: { wallet_address: address }
+      });
+      
+      if (error) throw error;
+      
+      // Update local user state
+      setUser(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          wallet_address: address
+        };
+      });
+      
+      toast.success("Wallet connected successfully");
+    } catch (error: any) {
+      console.error("Wallet connection error:", error);
+      toast.error(error.message || "Failed to connect wallet");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -223,7 +300,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       signIn, 
       signUp, 
       signOut,
-      refreshUserProfile 
+      refreshUserProfile,
+      setUserRole,
+      connectWallet
     }}>
       {children}
     </AuthContext.Provider>
