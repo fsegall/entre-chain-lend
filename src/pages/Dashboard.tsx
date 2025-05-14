@@ -17,6 +17,8 @@ const Dashboard = () => {
     if (!loading && !user) {
       navigate("/login");
     }
+
+    console.log("user", user);
     
     // Determine if we should show role selection
     if (user) {
