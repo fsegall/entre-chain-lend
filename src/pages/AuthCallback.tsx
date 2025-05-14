@@ -51,17 +51,21 @@ const AuthCallback = () => {
           
           // For new sign-ups or oauth logins, ensure they are marked as needing role selection
           if (sessionData.session.user) {
+            console.log("Updating profile for user:", sessionData.session.user.id);
+            
             // Always update the profile for new social logins to ensure role selection is shown
             const { error: profileError } = await supabase
               .from('profiles')
               .upsert({ 
                 id: sessionData.session.user.id,
                 is_onboarded: false,  // Set to false to ensure role selection appears
-                role_selection: null  // Clear any existing role to force selection
+                role_selection: null,  // Clear any existing role to force selection
+                full_name: sessionData.session.user.user_metadata?.full_name,
+                avatar_url: sessionData.session.user.user_metadata?.avatar_url
               });
             
             if (profileError) {
-              console.warn("Failed to update onboarding status:", profileError);
+              console.error("Failed to update onboarding status:", profileError);
             } else {
               console.log("User marked as needing role selection");
             }
@@ -75,7 +79,7 @@ const AuthCallback = () => {
               });
               
             if (roleError) {
-              console.warn("Failed to set visitor role:", roleError);
+              console.error("Failed to set visitor role:", roleError);
             } else {
               console.log("Visitor role added or confirmed");
             }

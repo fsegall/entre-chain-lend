@@ -14,11 +14,13 @@ const Dashboard = () => {
   const [isRoleSelectionVisible, setIsRoleSelectionVisible] = useState(false);
   
   useEffect(() => {
+    console.log("Dashboard useEffect running with user:", user);
+    
     if (!loading && !user) {
+      console.log("No user found, redirecting to login");
       navigate("/login");
+      return;
     }
-
-    console.log("user", user);
     
     // Determine if we should show role selection
     if (user) {
@@ -33,15 +35,22 @@ const Dashboard = () => {
       // 1. User has visitor role
       // 2. User has no role_selection set
       // 3. User is not onboarded (is_onboarded is explicitly false)
-      const shouldShowRoleSelection = 
-        (user.roles && user.roles.includes('visitor')) || 
-        !user.role_selection ||
-        user.is_onboarded === false;
+      const hasVisitorRole = user.roles && user.roles.includes('visitor');
+      const noRoleSelected = !user.role_selection;
+      const needsOnboarding = user.is_onboarded === false;
       
+      console.log("Role selection criteria:", {
+        hasVisitorRole,
+        noRoleSelected,
+        needsOnboarding
+      });
+      
+      const shouldShowRoleSelection = hasVisitorRole || noRoleSelected || needsOnboarding;
+      
+      console.log("Should show role selection:", shouldShowRoleSelection);
       setIsRoleSelectionVisible(shouldShowRoleSelection);
-      console.log("Role selection visibility:", shouldShowRoleSelection);
     }
-  }, [user, loading, navigate, isRoleSelectionVisible]);
+  }, [user, loading, navigate]);
 
   const handleRoleSelection = async (role: 'lender' | 'borrower') => {
     if (!user) return;
@@ -108,7 +117,7 @@ const Dashboard = () => {
           Welcome, {user?.full_name || user?.email}
         </h1>
         
-        {isRoleSelectionVisible ? (
+        {isRoleSelectionVisible && (
           <div className="bg-white p-6 rounded-lg shadow-md mb-8">
             <h2 className="text-xl font-semibold text-blockloan-blue mb-4">Complete Your Profile</h2>
             <p className="text-gray-600 mb-6">
@@ -132,7 +141,9 @@ const Dashboard = () => {
               </Button>
             </div>
           </div>
-        ) : (
+        )}
+        
+        {!isRoleSelectionVisible && (
           // Regular dashboard content for users who have selected a role
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-lg shadow-md">
