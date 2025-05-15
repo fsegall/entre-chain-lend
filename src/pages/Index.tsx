@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
@@ -7,15 +6,17 @@ import LoanCard, { LoanProps } from "@/components/LoanCard";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ExternalLink } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { handleApiError } from "@/hooks/use-toast";
-import Web3AuthInstructions from "@/components/wallet/Web3AuthInstructions";
+import { useAuth } from "@/hooks/useAuth";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
+import ConnectWalletButton from "@/components/wallet/ConnectWalletButton";
 
 const Index = () => {
   console.log("Index page rendering");
+  const [isConnecting, setIsConnecting] = useState(false);
   
   // Sample featured loans
   const [featuredLoans, setFeaturedLoans] = useState<LoanProps[]>([
@@ -64,6 +65,18 @@ const Index = () => {
     configError: configError ? "Error present" : "No error",
     domainError
   });
+
+  const handleConnect = async () => {
+    setIsConnecting(true);
+    try {
+      // Add your wallet connection logic here
+      console.log("Connecting wallet...");
+    } catch (error) {
+      console.error("Failed to connect wallet:", error);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
 
   useEffect(() => {
     // Any API calls that might be causing the error should be wrapped in try/catch
@@ -124,7 +137,10 @@ const Index = () => {
         <div className="container mx-auto px-4 py-6">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Web3Auth Configuration Required</h2>
-            <Web3AuthInstructions />
+            <ConnectWalletButton 
+              isConnecting={isConnecting}
+              onConnect={handleConnect}
+            />
           </div>
         </div>
       )}
