@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
@@ -9,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { handleApiError } from "@/hooks/use-toast";
+import Web3AuthInstructions from "@/components/wallet/Web3AuthInstructions";
+import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 
 const Index = () => {
   console.log("Index page rendering");
@@ -53,6 +54,9 @@ const Index = () => {
     }
   ]);
 
+  // Add the configError from useWeb3Auth
+  const { configError } = useWeb3Auth();
+
   useEffect(() => {
     // Any API calls that might be causing the error should be wrapped in try/catch
     const fetchData = async () => {
@@ -72,10 +76,13 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex flex-col min-h-screen">
       <Navbar />
       <Hero />
       <Features />
+      
+      {/* Display Web3Auth instructions if there's a configuration error */}
+      {configError && <Web3AuthInstructions />}
       
       {/* Featured Loans Section */}
       <section className="py-16 bg-white">
@@ -125,4 +132,3 @@ const Index = () => {
 };
 
 export default Index;
-

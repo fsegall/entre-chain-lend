@@ -1,7 +1,7 @@
 
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import { Button } from "@/components/ui/button";
-import { Wallet, Loader2 } from "lucide-react";
+import { Wallet, Loader2, AlertTriangle } from "lucide-react";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useEffect } from "react";
 
@@ -12,7 +12,8 @@ const WalletConnect = () => {
     isInitializing,
     connect,
     disconnect,
-    formatAddress
+    formatAddress,
+    configError
   } = useWeb3Auth();
   
   // Log component state for debugging
@@ -20,9 +21,33 @@ const WalletConnect = () => {
     console.log("WalletConnect component state:", { 
       isConnected,
       address,
-      isInitializing
+      isInitializing,
+      configError
     });
-  }, [isConnected, address, isInitializing]);
+  }, [isConnected, address, isInitializing, configError]);
+
+  if (configError) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 bg-amber-50 border-amber-200 text-amber-700"
+              disabled
+            >
+              <AlertTriangle className="h-4 w-4" />
+              <span>Configuration Error</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs">
+            <p>{configError}</p>
+            <p className="mt-1 text-xs">Update your Web3Auth Client ID in useWeb3Auth.tsx</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
 
   if (isInitializing) {
     return (
