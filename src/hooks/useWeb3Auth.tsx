@@ -104,7 +104,8 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
             } as any // Use type assertion to bypass the type checking issues
           });
           
-          console.log("Web3Auth initialized successfully");
+          
+          console.log("Web3Auth initialized successfully"); 
           setWeb3Auth(web3AuthInstance);
 
           // Check if user is already logged in
