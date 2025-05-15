@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
@@ -56,6 +57,8 @@ const Index = () => {
 
   // Add the configError from useWeb3Auth
   const { configError } = useWeb3Auth();
+  
+  console.log("Web3Auth config error status:", configError ? "Error present" : "No error");
 
   useEffect(() => {
     // Any API calls that might be causing the error should be wrapped in try/catch
@@ -82,7 +85,9 @@ const Index = () => {
       <Features />
       
       {/* Display Web3Auth instructions if there's a configuration error */}
-      {configError && <Web3AuthInstructions />}
+      <div className="container mx-auto px-4">
+        {configError && <Web3AuthInstructions />}
+      </div>
       
       {/* Featured Loans Section */}
       <section className="py-16 bg-white">

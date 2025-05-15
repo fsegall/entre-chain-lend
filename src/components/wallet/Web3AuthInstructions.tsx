@@ -38,6 +38,7 @@ const Web3AuthInstructions = () => {
               </li>
               <li>
                 <p>Replace the <code className="bg-gray-200 px-1 rounded">WEB3AUTH_CLIENT_ID</code> value with your Client ID</p>
+                <p className="text-xs text-gray-600 mt-1">Note: Make sure to paste the entire Client ID without any trailing spaces</p>
               </li>
               <li>
                 <p>Configure allowed domains in your Web3Auth dashboard (add your app's domain)</p>
@@ -55,6 +56,27 @@ const Web3AuthInstructions = () => {
               <li>Chain: <code className="bg-gray-200 px-1 rounded">Ethereum Mainnet (0x1)</code></li>
             </ul>
             <p className="mt-2">You can modify these settings in <code className="bg-gray-200 px-1 rounded">src/hooks/useWeb3Auth.tsx</code> if needed.</p>
+          </AccordionContent>
+        </AccordionItem>
+        
+        <AccordionItem value="troubleshooting">
+          <AccordionTrigger>Troubleshooting</AccordionTrigger>
+          <AccordionContent>
+            <p className="font-medium">If you're still seeing Client ID errors after updating it:</p>
+            <ul className="list-disc pl-5 space-y-2 mt-2">
+              <li>
+                <p>Make sure you've replaced the entire <code className="bg-gray-200 px-1 rounded">YOUR_WEB3AUTH_CLIENT_ID_HERE</code> placeholder string with your actual Client ID</p>
+              </li>
+              <li>
+                <p>Check that there are no extra spaces or characters in the Client ID</p>
+              </li>
+              <li>
+                <p>Verify that your Client ID follows the correct format from Web3Auth</p>
+              </li>
+              <li>
+                <p>Try refreshing the page after saving your changes</p>
+              </li>
+            </ul>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
