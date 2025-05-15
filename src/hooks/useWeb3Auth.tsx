@@ -38,7 +38,7 @@ const web3AuthOptions = {
   chainConfig: {
     chainNamespace: CHAIN_NAMESPACES.EIP155,
     chainId: '0x1', // Ethereum mainnet
-    rpcTarget: `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`, // Using Infura mainnet
+    rpcTarget: `https://mainnet.infura.io/v3/${faca901f5f964535b01ff9cabfd64bb3}`, // Using Infura mainnet
   },
   uiConfig: {
     theme: 'light',
