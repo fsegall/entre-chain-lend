@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { formatUser } from "./utils";
 
@@ -9,6 +8,20 @@ export const signIn = async (email: string, password: string) => {
   });
 
   if (error) throw error;
+
+  // After successful sign in, ensure the user has a visitor role
+  if (data.user) {
+    const { error: roleError } = await supabase
+      .from('user_roles')
+      .upsert({ 
+        user_id: data.user.id,
+        role: 'visitor'
+      });
+      
+    if (roleError) {
+      console.error("Failed to set visitor role:", roleError);
+    }
+  }
 
   return {
     session: data.session,

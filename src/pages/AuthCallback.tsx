@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,55 +12,47 @@ const AuthCallback = () => {
   const { refreshUserProfile } = useAuth();
 
   useEffect(() => {
-    // Add a guard against multiple callback processing
-    const hasProcessed = sessionStorage.getItem("auth_callback_processed");
-    
     const handleAuthCallback = async () => {
       try {
         console.log("Auth callback processing started at:", new Date().toISOString());
         console.log("URL hash:", window.location.hash);
         console.log("URL search params:", window.location.search);
         
-        // Check if we've already processed this callback to prevent loops
-        if (hasProcessed) {
-          console.log("Auth callback already processed, avoiding duplicates");
-          navigate("/dashboard", { replace: true });
-          return;
-        }
-        
-        // Mark this callback as processed to prevent loops
-        sessionStorage.setItem("auth_callback_processed", "true");
-        
-        // First check if we have a valid session to avoid redirect loops
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        // Get the current session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         console.log("Session check completed", { 
-          hasSession: !!sessionData.session,
-          sessionError: sessionError ? sessionError.message : null
+          hasSession: !!session,
+          sessionError: sessionError ? sessionError.message : null,
+          user: session?.user ? {
+            id: session.user.id,
+            email: session.user.email,
+            role: session.user.role
+          } : null
         });
         
         if (sessionError) {
           throw sessionError;
         }
         
-        if (sessionData.session) {
+        if (session) {
           // Successfully authenticated
           console.log("Authentication successful, refreshing user profile");
           toast.success("Successfully signed in!");
           
           // For new sign-ups or oauth logins, ensure they are marked as needing role selection
-          if (sessionData.session.user) {
-            console.log("Updating profile for user:", sessionData.session.user.id);
+          if (session.user) {
+            console.log("Updating profile for user:", session.user.id);
             
             // Always update the profile for new social logins to ensure role selection is shown
             const { error: profileError } = await supabase
               .from('profiles')
               .upsert({ 
-                id: sessionData.session.user.id,
+                id: session.user.id,
                 is_onboarded: false,  // Set to false to ensure role selection appears
                 role_selection: null,  // Clear any existing role to force selection
-                full_name: sessionData.session.user.user_metadata?.full_name,
-                avatar_url: sessionData.session.user.user_metadata?.avatar_url
+                full_name: session.user.user_metadata?.full_name,
+                avatar_url: session.user.user_metadata?.avatar_url
               });
             
             if (profileError) {
@@ -74,7 +65,7 @@ const AuthCallback = () => {
             const { error: roleError } = await supabase
               .from('user_roles')
               .upsert({ 
-                user_id: sessionData.session.user.id,
+                user_id: session.user.id,
                 role: 'visitor'
               });
               
@@ -87,10 +78,6 @@ const AuthCallback = () => {
           
           // Refresh user profile to get updated roles and other data
           await refreshUserProfile();
-          
-          // Clear any potential state that might cause loops
-          sessionStorage.removeItem("supabase.auth.token");
-          localStorage.removeItem("supabase.auth.token");
           
           // Add a small delay to ensure toast is shown before navigation
           setTimeout(() => {
@@ -114,10 +101,6 @@ const AuthCallback = () => {
         console.error("Auth callback error:", error);
         setError(error.message || "Authentication error");
         toast.error(error.message || "Authentication error");
-        
-        // Clear any problematic auth state
-        sessionStorage.removeItem("supabase.auth.token");
-        localStorage.removeItem("supabase.auth.token");
         
         // Redirect to login after error
         setTimeout(() => {

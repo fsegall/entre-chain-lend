@@ -1,9 +1,9 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import WalletConnect from "./WalletConnect";
+import RoleSwitcher from "./RoleSwitcher";
 import { useAuth } from "@/hooks/useAuth";
 
 const Navbar = () => {
@@ -50,6 +50,7 @@ const Navbar = () => {
           </div>
           <div className="hidden md:block">
             <div className="flex items-center gap-4">
+              {user && <RoleSwitcher />}
               <WalletConnect />
               
               {user ? (
@@ -125,6 +126,7 @@ const Navbar = () => {
               </Link>
             )}
             <div className="pt-4 flex flex-col gap-2">
+              {user && <RoleSwitcher />}
               <WalletConnect />
               
               {user ? (
