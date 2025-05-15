@@ -11,6 +11,8 @@ import { Link } from "react-router-dom";
 import { handleApiError } from "@/hooks/use-toast";
 import Web3AuthInstructions from "@/components/wallet/Web3AuthInstructions";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 const Index = () => {
   console.log("Index page rendering");
@@ -60,7 +62,7 @@ const Index = () => {
   
   console.log("Web3Auth state:", { 
     configError: configError ? "Error present" : "No error",
-    domainError: domainError
+    domainError
   });
 
   useEffect(() => {
@@ -84,60 +86,81 @@ const Index = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <Hero />
-      <Features />
       
-      {/* Display Web3Auth instructions if there's a configuration error */}
-      <div className="container mx-auto px-4 py-6">
-        {(configError || domainError) && (
-          <>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Web3Auth Configuration</h2>
+      {/* Show domain error alert at the top if domain error exists */}
+      {domainError && (
+        <div className="bg-red-50 border-red-200 px-4 py-3">
+          <Alert variant="destructive" className="border-red-300">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Domain Not Whitelisted</AlertTitle>
+            <AlertDescription>
+              Your domain needs to be added to Web3Auth's allowed list. See instructions below.
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+      
+      {/* Show Hero section only if there's no domain error */}
+      {!domainError && <Hero />}
+      
+      {/* Show Features section only if there's no domain error */}
+      {!domainError && <Features />}
+      
+      {/* Display Web3Auth instructions prominently if there's a configuration or domain error */}
+      {(configError || domainError) && (
+        <div className="container mx-auto px-4 py-6 mt-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Web3Auth Configuration Required</h2>
             <Web3AuthInstructions />
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
       
-      {/* Featured Loans Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-10">
-            <div>
-              <h2 className="text-3xl font-bold text-blockloan-blue">Featured Loan Opportunities</h2>
-              <p className="text-gray-600 mt-2">Browse some of our top small business funding opportunities</p>
+      {/* Featured Loans Section - show only if no domain error */}
+      {!domainError && (
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center mb-10">
+              <div>
+                <h2 className="text-3xl font-bold text-blockloan-blue">Featured Loan Opportunities</h2>
+                <p className="text-gray-600 mt-2">Browse some of our top small business funding opportunities</p>
+              </div>
+              <Link to="/loans">
+                <Button variant="outline" className="border-blockloan-blue text-blockloan-blue">
+                  View All Loans
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
-            <Link to="/loans">
-              <Button variant="outline" className="border-blockloan-blue text-blockloan-blue">
-                View All Loans
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {featuredLoans.map((loan) => (
+                <LoanCard key={loan.id} loan={loan} />
+              ))}
+            </div>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredLoans.map((loan) => (
-              <LoanCard key={loan.id} loan={loan} />
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
       
-      {/* CTA Section */}
-      <section className="bg-gradient-to-r from-blockloan-blue to-blockloan-teal py-16">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
-          <h2 className="text-3xl font-bold mb-6">Ready to Transform Your Business?</h2>
-          <p className="text-xl mb-10 max-w-3xl mx-auto">
-            Join our platform to connect with investors who believe in your vision or become a lender to support small business innovation.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Button size="lg" className="bg-white text-blockloan-blue hover:bg-gray-100">
-              Apply for Business Loan
-            </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-              Become a Lender
-            </Button>
+      {/* CTA Section - show only if no domain error */}
+      {!domainError && (
+        <section className="bg-gradient-to-r from-blockloan-blue to-blockloan-teal py-16">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
+            <h2 className="text-3xl font-bold mb-6">Ready to Transform Your Business?</h2>
+            <p className="text-xl mb-10 max-w-3xl mx-auto">
+              Join our platform to connect with investors who believe in your vision or become a lender to support small business innovation.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Button size="lg" className="bg-white text-blockloan-blue hover:bg-gray-100">
+                Apply for Business Loan
+              </Button>
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+                Become a Lender
+              </Button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
       
       <Footer />
     </div>

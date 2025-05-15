@@ -26,6 +26,7 @@ const Web3AuthContext = createContext<Web3AuthContextType | undefined>(undefined
 
 // Web3Auth configuration
 // Replace this Client ID with your own from Web3Auth Dashboard
+// Important: Make sure to whitelist your domain in the Web3Auth dashboard
 const WEB3AUTH_CLIENT_ID = 'BNVk83iTB0NVB1d-xwh7Ux1sax3oJSkJOBt6Wft7yrSeBdw9gL3AZUE2Klu76uA5pfhSAB_4E0IwaXZGVnYSqbQ';
 
 const web3AuthOptions = {
@@ -34,7 +35,8 @@ const web3AuthOptions = {
   chainConfig: {
     chainNamespace: CHAIN_NAMESPACES.EIP155,
     chainId: '0x1', // Ethereum mainnet
-    rpcTarget: 'https://rpc.ankr.com/eth',
+    // Use Infura as RPC provider instead of Ankr which requires API key
+    rpcTarget: 'https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
   },
   uiConfig: {
     theme: 'light',
