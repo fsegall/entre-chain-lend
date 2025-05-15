@@ -31,10 +31,11 @@ export default defineConfig(({ mode }) => ({
       'version': '',
       'nextTick': (cb: any) => setTimeout(cb, 0),
     },
-    // Add Buffer polyfill properly
-    'Buffer': 'Buffer',
+    // Correctly define Buffer
+    'global.Buffer': ['buffer', 'Buffer'],
   },
   optimizeDeps: {
+    include: ['buffer'],
     esbuildOptions: {
       define: {
         global: 'globalThis',

@@ -5,13 +5,6 @@ import { Wallet, Loader2 } from "lucide-react";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useEffect } from "react";
 
-// Ensure Buffer is available globally
-import { Buffer as BufferPolyfill } from 'buffer';
-// Make Buffer available globally
-if (typeof window !== 'undefined') {
-  window.Buffer = window.Buffer || BufferPolyfill;
-}
-
 const WalletConnect = () => {
   const {
     isConnected,

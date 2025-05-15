@@ -2,7 +2,9 @@
 import { Buffer } from 'buffer';
 
 // Make Buffer available globally
-window.Buffer = window.Buffer || Buffer;
+if (typeof window !== 'undefined') {
+  window.Buffer = window.Buffer || Buffer;
+}
 
 // Augment the Window interface
 declare global {

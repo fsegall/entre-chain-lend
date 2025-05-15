@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Web3Auth } from '@web3auth/modal';
 import { CHAIN_NAMESPACES, IProvider } from '@web3auth/base';
@@ -62,6 +61,8 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
     const init = async () => {
       try {
         console.log("Initializing Web3Auth...");
+        console.log("Buffer availability check:", typeof window.Buffer !== 'undefined' ? "Buffer is available" : "Buffer is NOT available");
+        
         const privateKeyProvider = new EthereumPrivateKeyProvider({
           config: { chainConfig: web3AuthOptions.chainConfig },
         });
