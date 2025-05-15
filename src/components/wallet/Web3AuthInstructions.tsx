@@ -32,7 +32,7 @@ const Web3AuthInstructions = () => {
         <AlertDescription className={`text-base ${domainError ? 'text-red-700' : 'text-amber-700'}`}>
           {domainError 
             ? 'Your domain needs to be added to the allowed list in Web3Auth dashboard.'
-            : 'To enable Web3Auth wallet functionality, you need to configure your Web3Auth Client ID.'}
+            : 'To enable Web3Auth wallet functionality, you need to configure your Web3Auth Client ID and Infura Project ID.'}
         </AlertDescription>
       </Alert>
 
@@ -115,6 +115,10 @@ const Web3AuthInstructions = () => {
                 <p className="text-sm text-gray-600 mt-1">Look for this line: <code className="bg-gray-200 px-2 py-1 rounded">const WEB3AUTH_CLIENT_ID = '...';</code></p>
               </li>
               <li>
+                <p>You'll also need to provide an Infura Project ID to connect to Ethereum mainnet:</p>
+                <p className="text-sm mt-1">Create one at <a href="https://infura.io/register" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Infura</a> and update the <code className="bg-gray-200 px-2 py-1 rounded">INFURA_PROJECT_ID</code> variable</p>
+              </li>
+              <li>
                 <p>Configure allowed domains in your Web3Auth dashboard:</p>
                 <p className="text-sm mt-1">Add this domain: <code className="bg-gray-200 px-2 py-1 rounded">{window.location.origin}</code></p>
               </li>
@@ -128,10 +132,41 @@ const Web3AuthInstructions = () => {
             <p>The application is currently configured to use:</p>
             <ul className="list-disc pl-5 space-y-2 mt-3">
               <li>Network: <code className="bg-gray-200 px-2 py-1 rounded">sapphire_devnet</code></li>
-              <li>Chain: <code className="bg-gray-200 px-2 py-1 rounded">Ethereum Goerli Testnet (0x5)</code></li>
-              <li>RPC Provider: <code className="bg-gray-200 px-2 py-1 rounded">Public Goerli RPC</code></li>
+              <li>Chain: <code className="bg-gray-200 px-2 py-1 rounded">Ethereum Mainnet (0x1)</code></li>
+              <li>RPC Provider: <code className="bg-gray-200 px-2 py-1 rounded">Infura Mainnet</code></li>
             </ul>
+            <p className="mt-3 text-amber-700 font-medium">Important: You need to provide your Infura Project ID for authentication to work.</p>
             <p className="mt-3">You can modify these settings in <code className="bg-gray-200 px-2 py-1 rounded">src/hooks/useWeb3Auth.tsx</code> if needed.</p>
+          </AccordionContent>
+        </AccordionItem>
+        
+        <AccordionItem value="infura" className="border-b">
+          <AccordionTrigger className="text-lg font-medium">Getting an Infura Project ID</AccordionTrigger>
+          <AccordionContent className="text-base leading-relaxed">
+            <ol className="list-decimal pl-5 space-y-4">
+              <li>
+                <p>Go to <a href="https://infura.io/register" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Infura's registration page</a> and create an account if you don't have one</p>
+              </li>
+              <li>
+                <p>After logging in, click "Create New API Key" or go to the Dashboard</p>
+              </li>
+              <li>
+                <p>Select "Web3 API" as the network</p>
+              </li>
+              <li>
+                <p>Name your project (e.g., "BlockLoan Web3Auth")</p>
+              </li>
+              <li>
+                <p>Once created, you'll see your Project ID in the project settings</p>
+              </li>
+              <li>
+                <p>Copy this Project ID and update the <code className="bg-gray-200 px-2 py-1 rounded">INFURA_PROJECT_ID</code> variable in <code className="bg-gray-200 px-2 py-1 rounded">src/hooks/useWeb3Auth.tsx</code></p>
+              </li>
+            </ol>
+            <div className="mt-6 p-4 border border-amber-200 bg-amber-50 rounded text-amber-800">
+              <p className="font-bold">Important Security Note:</p>
+              <p className="mt-1">In a production environment, you should never expose your Infura Project ID directly in the frontend code. Consider using environment variables or a backend proxy.</p>
+            </div>
           </AccordionContent>
         </AccordionItem>
         
@@ -161,13 +196,13 @@ const Web3AuthInstructions = () => {
                 <p className="font-medium text-lg mb-2">If you're experiencing RPC connection errors:</p>
                 <ul className="list-disc pl-5 space-y-2">
                   <li>
-                    <p>The application is now using a public Goerli testnet RPC endpoint instead of Infura</p>
+                    <p>Verify that you've provided a valid Infura Project ID</p>
+                  </li>
+                  <li>
+                    <p>Check if your Infura project has any rate limits or restrictions</p>
                   </li>
                   <li>
                     <p>If you still see RPC errors, check the browser console for more details</p>
-                  </li>
-                  <li>
-                    <p>You may need to provide your own RPC URL if the public endpoint is rate-limited</p>
                   </li>
                 </ul>
               </div>

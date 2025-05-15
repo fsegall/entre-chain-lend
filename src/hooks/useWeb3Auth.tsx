@@ -29,16 +29,16 @@ const Web3AuthContext = createContext<Web3AuthContextType | undefined>(undefined
 // Important: Make sure to whitelist your domain in the Web3Auth dashboard
 const WEB3AUTH_CLIENT_ID = 'BNVk83iTB0NVB1d-xwh7Ux1sax3oJSkJOBt6Wft7yrSeBdw9gL3AZUE2Klu76uA5pfhSAB_4E0IwaXZGVnYSqbQ';
 
-// Use a public Goerli RPC endpoint instead of Infura to avoid authentication issues
-const PUBLIC_GOERLI_RPC_URL = 'https://eth-goerli.public.blastapi.io';
+// You'll need to provide your Infura Project ID
+const INFURA_PROJECT_ID = ''; // This will be provided by the user
 
 const web3AuthOptions = {
   clientId: WEB3AUTH_CLIENT_ID,
   web3AuthNetwork: 'sapphire_devnet',
   chainConfig: {
     chainNamespace: CHAIN_NAMESPACES.EIP155,
-    chainId: '0x5', // Goerli testnet
-    rpcTarget: PUBLIC_GOERLI_RPC_URL, // Using public RPC endpoint for Goerli
+    chainId: '0x1', // Ethereum mainnet
+    rpcTarget: `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`, // Using Infura mainnet
   },
   uiConfig: {
     theme: 'light',
@@ -68,8 +68,16 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("Initializing Web3Auth...");
         console.log("Buffer availability check:", typeof window.Buffer !== 'undefined' ? "Buffer is available" : "Buffer is NOT available");
         console.log("Using Client ID:", WEB3AUTH_CLIENT_ID);
-        console.log("Using RPC target:", web3AuthOptions.chainConfig.rpcTarget);
-        console.log("Using Chain ID:", web3AuthOptions.chainConfig.chainId);
+        console.log("Using Infura Project ID:", INFURA_PROJECT_ID ? "Provided" : "Not provided");
+        
+        // Check if Infura Project ID is provided
+        if (!INFURA_PROJECT_ID) {
+          console.warn("Warning: Infura Project ID is missing");
+          setConfigError("Infura Project ID is required for authentication. Please provide it.");
+          setIsInitializing(false);
+          setInitAttempted(true);
+          return;
+        }
         
         // Allow any client ID for development, but show warning
         if (!WEB3AUTH_CLIENT_ID || WEB3AUTH_CLIENT_ID.length < 10) {
