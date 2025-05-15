@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -38,6 +39,10 @@ const WalletConnect = () => {
   // Check if MetaMask or another web3 provider is available
   const isWeb3Available = typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
 
+  // Define all supported chain IDs for Ephemery
+  // Some wallets might show different chain IDs for the same network
+  const ephemeryChainIds = ['0x53a', '0x259c741']; // 1338 in decimal and alternative ID
+
   const connectWeb3Wallet = async () => {
     try {
       setWalletStatus('connecting');
@@ -53,12 +58,12 @@ const WalletConnect = () => {
       
       console.log("Connected to wallet address:", address);
       
-      // Check if we're connected to Ephemery testnet (chainId 0x53a)
+      // Check if we're connected to Ephemery testnet
       const chainId = await window.ethereum.request({ method: 'eth_chainId' });
       console.log("Current chain ID:", chainId);
       
-      // Ephemery testnet chainId is 0x53a in hex (1338 in decimal)
-      if (chainId !== '0x53a') {
+      // Check if the current chain ID is in our list of supported Ephemery chain IDs
+      if (!ephemeryChainIds.includes(chainId)) {
         // Instead of automatically switching, save the pending connection and show dialog
         setPendingConnection({
           address,
@@ -90,7 +95,7 @@ const WalletConnect = () => {
       try {
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x53a' }], // Ephemery testnet chainId in hex
+          params: [{ chainId: '0x53a' }], // Primary Ephemery testnet chainId in hex
         });
       } catch (switchError: any) {
         // This error code indicates that the chain has not been added to MetaMask
@@ -274,6 +279,9 @@ const WalletConnect = () => {
             <AlertDialogDescription>
               This application requires the Ephemery test network. 
               Would you like to switch your wallet to the Ephemery network now?
+              <p className="mt-2 text-xs font-medium text-amber-600">
+                Note: You may see a warning from your wallet about this network. This is normal for newer testnets.
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
