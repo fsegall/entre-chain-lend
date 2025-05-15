@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Web3Auth } from '@web3auth/modal';
-import { CHAIN_NAMESPACES, IProvider, OPENLOGIN_NETWORK } from '@web3auth/base';
+import { CHAIN_NAMESPACES, IProvider } from '@web3auth/base';
 import { EthereumPrivateKeyProvider } from '@web3auth/ethereum-provider';
 import { ethers } from 'ethers';
 import { toast } from 'sonner';
@@ -25,7 +25,8 @@ const Web3AuthContext = createContext<Web3AuthContextType | undefined>(undefined
 // Web3Auth configuration
 const web3AuthOptions = {
   clientId: 'BEXt8ZqSKGKUINb_xaUK3GFGjm7CJqWoUjD5zHl8iiztYgXXcK6-pqyIMaIy9QXQ95LJK1wtXBGXlHO4BIWKJO0', // Public Auth0 client ID
-  web3AuthNetwork: OPENLOGIN_NETWORK.SAPPHIRE_DEVNET,
+  // Using string literal for network since OPENLOGIN_NETWORK is not exported
+  web3AuthNetwork: 'sapphire_devnet',
   chainConfig: {
     chainNamespace: CHAIN_NAMESPACES.EIP155,
     chainId: '0x1', // Ethereum mainnet
@@ -37,7 +38,7 @@ const web3AuthOptions = {
     appLogo: 'https://web3auth.io/images/w3a-L-Favicon-1.svg',
     defaultLanguage: 'en',
     modalZIndex: '2147483647',
-    primaryButton: 'socialLogin' as const,
+    primaryButton: 'socialLogin',
   },
 };
 
@@ -59,9 +60,9 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const web3AuthInstance = new Web3Auth({
           clientId: web3AuthOptions.clientId,
-          web3AuthNetwork: web3AuthOptions.web3AuthNetwork,
+          web3AuthNetwork: web3AuthOptions.web3AuthNetwork as any,
           chainConfig: web3AuthOptions.chainConfig,
-          uiConfig: web3AuthOptions.uiConfig,
+          uiConfig: web3AuthOptions.uiConfig as any,
           privateKeyProvider: privateKeyProvider,
         });
 
@@ -75,7 +76,7 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
           const userAddress = await signer.getAddress();
           
           setAddress(userAddress);
-          setProvider(web3AuthInstance.provider);
+          setProvider(web3AuthInstance.provider as any);
           setIsConnected(true);
           
           // Update Supabase profile if user is authenticated
@@ -115,7 +116,7 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
         const userAddress = await signer.getAddress();
         
         setAddress(userAddress);
-        setProvider(web3authProvider);
+        setProvider(web3authProvider as any);
         setIsConnected(true);
         
         // Update Supabase profile if user is authenticated
