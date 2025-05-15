@@ -6,12 +6,21 @@ import {
   AccordionTrigger 
 } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, ExternalLink } from "lucide-react";
+import { AlertCircle, ExternalLink, Copy, Check } from "lucide-react";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 const Web3AuthInstructions = () => {
   const { configError, domainError } = useWeb3Auth();
+  const [copied, setCopied] = useState(false);
+  
+  const copyDomain = () => {
+    const text = window.location.origin;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   
   return (
     <div className="mt-4 p-6 border rounded-md bg-gray-50">
@@ -45,13 +54,10 @@ const Web3AuthInstructions = () => {
             <Button 
               variant="outline" 
               className="border-red-300 text-red-700"
-              onClick={() => {
-                const text = window.location.origin;
-                navigator.clipboard.writeText(text);
-                alert("Domain copied to clipboard!");
-              }}
+              onClick={copyDomain}
             >
-              Copy Your Domain
+              {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+              {copied ? "Domain Copied!" : "Copy Your Domain"}
             </Button>
           </div>
         </div>
