@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Web3Auth } from '@web3auth/modal';
 import { CHAIN_NAMESPACES, IProvider } from '@web3auth/base';
@@ -34,7 +35,7 @@ const isValidClientId = (clientId: string): boolean => {
   }
   
   // Basic validation - ensure it's not empty and has reasonable length
-  return clientId && clientId.length > 8;
+  return clientId && clientId.length > 0;
 };
 
 const web3AuthOptions = {
@@ -81,19 +82,20 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
         
-        const privateKeyProvider = new EthereumPrivateKeyProvider({
-          config: { chainConfig: web3AuthOptions.chainConfig },
-        });
-
-        const web3AuthInstance = new Web3Auth({
-          clientId: WEB3AUTH_CLIENT_ID,
-          web3AuthNetwork: web3AuthOptions.web3AuthNetwork as any,
-          chainConfig: web3AuthOptions.chainConfig,
-          uiConfig: web3AuthOptions.uiConfig as any,
-          privateKeyProvider: privateKeyProvider,
-        });
-
+        // Even if the client ID passes basic validation, wrap the initialization in try/catch
         try {
+          const privateKeyProvider = new EthereumPrivateKeyProvider({
+            config: { chainConfig: web3AuthOptions.chainConfig },
+          });
+
+          const web3AuthInstance = new Web3Auth({
+            clientId: WEB3AUTH_CLIENT_ID,
+            web3AuthNetwork: web3AuthOptions.web3AuthNetwork as any,
+            chainConfig: web3AuthOptions.chainConfig,
+            uiConfig: web3AuthOptions.uiConfig as any,
+            privateKeyProvider: privateKeyProvider,
+          });
+
           // Using a simplified modalConfig that matches the expected type
           await web3AuthInstance.initModal({
             modalConfig: {
@@ -124,16 +126,15 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
               await connectWallet(userAddress);
             }
           }
-        } catch (modalError: any) {
-          console.error("Error initializing Web3Auth modal:", modalError);
-          setConfigError(`Web3Auth initialization failed: ${modalError.message}`);
+        } catch (initError: any) {
+          console.error("Error in Web3Auth initialization:", initError);
+          setConfigError(`Web3Auth initialization failed: ${initError.message}`);
         }
         
-        setIsInitializing(false);
       } catch (error: any) {
-        console.error("Error initializing Web3Auth:", error);
-        setConfigError(`Web3Auth initialization failed: ${error.message}`);
-        toast.error("Failed to initialize wallet connection");
+        console.error("Critical error initializing Web3Auth:", error);
+        setConfigError(`Web3Auth critical initialization error: ${error.message}`);
+      } finally {
         setIsInitializing(false);
       }
     };
