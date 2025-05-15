@@ -1,128 +1,103 @@
 
-import { useWalletConnection } from "@/hooks/useWalletConnection";
-import ConnectedWallet from "./wallet/ConnectedWallet";
-import NoWalletButton from "./wallet/NoWalletButton";
-import ConnectWalletButton from "./wallet/ConnectWalletButton";
-import NetworkSwitchDialog from "./wallet/NetworkSwitchDialog";
+import { useWeb3Auth } from "@/hooks/useWeb3Auth";
+import { Button } from "@/components/ui/button";
+import { Wallet, Loader2, AlertCircle } from "lucide-react";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
 const WalletConnect = () => {
   const {
-    walletStatus,
-    walletAddress,
-    showNetworkDialog,
-    isWeb3Available,
-    connectWeb3Wallet,
-    disconnectWallet,
-    handleSwitchNetwork,
-    handleCancelNetworkSwitch,
-    formatWalletAddress,
-    selectedNetwork,
-    setSelectedNetwork,
-    refreshWalletAddress,
-    detectAccountChanges,
-    error
-  } = useWalletConnection();
+    isConnected,
+    address,
+    isInitializing,
+    connect,
+    disconnect,
+    formatAddress
+  } = useWeb3Auth();
   
-  // Show error if there's an error
-  useEffect(() => {
-    if (error) {
-      console.error("Error in wallet connection:", error);
-      toast.error(error);
-    }
-  }, [error]);
-
   // Log component state for debugging
   useEffect(() => {
     console.log("WalletConnect component state:", { 
-      walletStatus,
-      walletAddress,
-      isWeb3Available,
-      showNetworkDialog
+      isConnected,
+      address,
+      isInitializing
     });
-  }, [walletStatus, walletAddress, isWeb3Available, showNetworkDialog]);
+  }, [isConnected, address, isInitializing]);
 
-  // Initialize account change detection
-  useEffect(() => {
-    // Set up MetaMask account change detection
-    const cleanup = detectAccountChanges();
-    return cleanup;
-  }, [detectAccountChanges]);
-
-  // Ensure wallet address is always up to date
-  useEffect(() => {
-    if (walletStatus === 'connected') {
-      // Refresh wallet address when component mounts
-      refreshWalletAddress();
-      
-      // Set up periodic refresh - less frequent since we have the event listener now
-      const refreshInterval = setInterval(() => {
-        refreshWalletAddress();
-      }, 3000); // Check every 3 seconds as a backup
-      
-      return () => clearInterval(refreshInterval);
-    }
-  }, [walletStatus, refreshWalletAddress]);
-  
-  const handleConnect = async () => {
-    try {
-      // Clear any existing errors from previous attempts
-      toast.dismiss();
-      
-      // Show connecting toast
-      const toastId = toast.loading("Connecting to wallet...");
-      
-      // Force a check of the current MetaMask account before connecting
-      if (isWeb3Available && window.ethereum) {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        console.log("Current MetaMask accounts before connecting:", accounts);
-      }
-      
-      await connectWeb3Wallet();
-      
-      // Clear the loading toast
-      toast.dismiss(toastId);
-    } catch (err: any) {
-      console.error("Connection error in WalletConnect:", err);
-      toast.error(`Failed to connect wallet: ${err.message}`);
-    }
-  };
-
-  const handleDisconnect = () => {
-    disconnectWallet();
-  };
-
-  if (walletStatus === 'connected') {
+  if (isInitializing) {
     return (
-      <ConnectedWallet
-        address={walletAddress}
-        formatAddress={formatWalletAddress}
-        onDisconnect={handleDisconnect}
-      />
+      <Button
+        variant="outline"
+        className="flex items-center gap-2"
+        disabled={true}
+      >
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Initializing...</span>
+      </Button>
     );
   }
 
-  if (!isWeb3Available) {
-    return <NoWalletButton />;
+  if (isConnected && address) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="outline" 
+              className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+              onClick={disconnect}
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse-slow"></div>
+                <span className="font-mono text-xs md:text-sm">
+                  {formatAddress(address)}
+                </span>
+              </div>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Connected! Click to disconnect</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   }
 
+  // No Web3 wallet detected
+  if (typeof window !== 'undefined' && !window.ethereum) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 text-amber-700 bg-amber-50 border-amber-200 hover:bg-amber-100"
+              disabled={true}
+            >
+              <AlertCircle className="h-4 w-4" />
+              <span>No Web3 Wallet</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Please install MetaMask or another Web3 wallet</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  // Standard connect button
   return (
-    <>
-      <ConnectWalletButton
-        isConnecting={walletStatus === 'connecting'}
-        onConnect={handleConnect}
-      />
-      
-      <NetworkSwitchDialog
-        open={showNetworkDialog}
-        onOpenChange={(open) => !open && handleCancelNetworkSwitch()}
-        onConfirm={handleSwitchNetwork}
-        onCancel={handleCancelNetworkSwitch}
-        selectedNetwork={selectedNetwork}
-        setSelectedNetwork={setSelectedNetwork}
-      />
-    </>
+    <Button
+      variant="outline"
+      className="flex items-center gap-2"
+      onClick={connect}
+      disabled={isInitializing}
+    >
+      <Wallet className="h-4 w-4" />
+      <span>Connect Wallet</span>
+    </Button>
   );
 };
 
