@@ -6,12 +6,8 @@ import { ethers } from 'ethers';
 import { toast } from 'sonner';
 import { useAuth } from './useAuth';
 
-// Ensure Buffer is available globally
-import { Buffer as BufferPolyfill } from 'buffer';
-// Make Buffer available globally
-if (typeof window !== 'undefined') {
-  window.Buffer = window.Buffer || BufferPolyfill;
-}
+// The Buffer polyfill is now imported globally from main.tsx
+// No need to import it here again
 
 // Define the Web3Auth context type
 interface Web3AuthContextType {
@@ -62,6 +58,7 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         console.log("Initializing Web3Auth...");
         console.log("Buffer availability check:", typeof window.Buffer !== 'undefined' ? "Buffer is available" : "Buffer is NOT available");
+        console.log("Buffer.from availability check:", typeof window.Buffer?.from === 'function' ? "Buffer.from is available" : "Buffer.from is NOT available");
         
         const privateKeyProvider = new EthereumPrivateKeyProvider({
           config: { chainConfig: web3AuthOptions.chainConfig },

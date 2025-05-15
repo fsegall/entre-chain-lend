@@ -24,22 +24,28 @@ export default defineConfig(({ mode }) => ({
   define: {
     // Polyfill for Node.js globals
     'process.env': {},
-    'global': 'globalThis',
+    'global': 'window',
     'process': {
       'browser': true,
       'env': {},
       'version': '',
       'nextTick': (cb: any) => setTimeout(cb, 0),
     },
-    // Correctly define Buffer
+    // Make sure Buffer is properly defined globally
     'global.Buffer': ['buffer', 'Buffer'],
+    'Buffer': ['buffer', 'Buffer'],
   },
   optimizeDeps: {
     include: ['buffer'],
     esbuildOptions: {
       define: {
-        global: 'globalThis',
+        global: 'window',
       },
     },
   },
+  build: {
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
+  }
 }));
