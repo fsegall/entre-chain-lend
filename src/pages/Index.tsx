@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
@@ -8,12 +8,13 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { handleApiError } from "@/hooks/use-toast";
 
 const Index = () => {
   console.log("Index page rendering");
   
   // Sample featured loans
-  const [featuredLoans] = useState<LoanProps[]>([
+  const [featuredLoans, setFeaturedLoans] = useState<LoanProps[]>([
     {
       id: "loan1",
       title: "TechGrow Software Development",
@@ -51,6 +52,24 @@ const Index = () => {
       deadline: "7 days"
     }
   ]);
+
+  useEffect(() => {
+    // Any API calls that might be causing the error should be wrapped in try/catch
+    const fetchData = async () => {
+      try {
+        console.log("Safely initializing application data");
+        // If you're making API calls here, they should be wrapped in try/catch
+        // For example:
+        // const response = await fetch('/api/data');
+        // const data = await response.json();
+        // setFeaturedLoans(data);
+      } catch (error) {
+        handleApiError(error, "Failed to load application data");
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -106,3 +125,4 @@ const Index = () => {
 };
 
 export default Index;
+

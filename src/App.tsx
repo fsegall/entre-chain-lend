@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { useState } from "react";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -12,9 +13,31 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
+import { toast } from "@/hooks/use-toast";
 
-// Initialize the query client outside the component to prevent re-initialization
-const queryClient = new QueryClient();
+// Configure the query client with better error handling
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      retryDelay: 1000,
+      onError: (error) => {
+        console.error("Query error:", error);
+        toast.error("Network error", { 
+          description: "There was a problem connecting to the server" 
+        });
+      },
+    },
+    mutations: {
+      onError: (error) => {
+        console.error("Mutation error:", error);
+        toast.error("Operation failed", { 
+          description: "There was a problem processing your request" 
+        });
+      },
+    },
+  },
+});
 
 const App = () => {
   console.log("App component rendering");
