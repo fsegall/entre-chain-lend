@@ -6,11 +6,15 @@ import {
   isWeb3Available, 
   requestAccounts, 
   getCurrentChainId, 
-  switchToEphemeryNetwork, 
+  switchToNetwork, 
   completeWalletConnection,
   formatWalletAddress
 } from "@/services/walletService";
-import { isEphemeryNetwork } from "@/utils/ethereumNetworks";
+import { 
+  DEFAULT_NETWORK,
+  isSupportedNetwork,
+  getNetworkFromChainId
+} from "@/utils/ethereumNetworks";
 
 type WalletStatus = 'disconnected' | 'connecting' | 'connected';
 
@@ -22,9 +26,11 @@ type PendingConnection = {
 export function useWalletConnection() {
   const [walletStatus, setWalletStatus] = useState<WalletStatus>('disconnected');
   const [walletAddress, setWalletAddress] = useState<string>('');
+  const [currentChainId, setCurrentChainId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showNetworkDialog, setShowNetworkDialog] = useState(false);
   const [pendingConnection, setPendingConnection] = useState<PendingConnection>(null);
+  const [selectedNetwork, setSelectedNetwork] = useState(DEFAULT_NETWORK);
   const { user, connectWallet } = useAuth();
 
   // Listen for chain changes
@@ -33,26 +39,57 @@ export function useWalletConnection() {
 
     const handleChainChanged = async (chainId: string) => {
       console.log("Chain changed to:", chainId);
+      setCurrentChainId(chainId);
       
-      // If connected and chain was changed to something other than Ephemery
-      if (walletStatus === 'connected' && !isEphemeryNetwork(chainId)) {
-        toast.warning("Please switch back to Ephemery network to use this application");
+      // If connected and chain was changed to something other than a supported network
+      if (walletStatus === 'connected' && !isSupportedNetwork(chainId)) {
+        toast.warning(`Please switch to a supported network to use this application`);
         setShowNetworkDialog(true);
-      } else if (walletStatus === 'connected' && isEphemeryNetwork(chainId)) {
-        // If switched back to Ephemery, hide the dialog
+      } else if (walletStatus === 'connected' && isSupportedNetwork(chainId)) {
+        // If switched back to a supported network, hide the dialog
         setShowNetworkDialog(false);
-        toast.success("Connected to Ephemery network");
+        const network = getNetworkFromChainId(chainId);
+        toast.success(`Connected to ${network?.chainName || 'supported network'}`);
       }
     };
 
     window.ethereum.on('chainChanged', handleChainChanged);
+    
+    // Get the current chain ID on mount
+    getCurrentChainId().then(chainId => {
+      setCurrentChainId(chainId);
+    }).catch(console.error);
     
     return () => {
       window.ethereum.removeListener('chainChanged', handleChainChanged);
     };
   }, [walletStatus]);
 
-  const connectWeb3Wallet = async () => {
+  // Listen for account changes
+  useEffect(() => {
+    if (!isWeb3Available()) return;
+
+    const handleAccountsChanged = (accounts: string[]) => {
+      if (accounts.length === 0) {
+        // User disconnected their wallet
+        setWalletStatus('disconnected');
+        setWalletAddress('');
+        toast.info("Wallet disconnected");
+      } else if (walletStatus === 'connected' && accounts[0] !== walletAddress) {
+        // User switched accounts
+        setWalletAddress(accounts[0]);
+        toast.info("Wallet account changed");
+      }
+    };
+
+    window.ethereum.on('accountsChanged', handleAccountsChanged);
+    
+    return () => {
+      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+    };
+  }, [walletStatus, walletAddress]);
+
+  const connectWeb3Wallet = async (networkToUse = selectedNetwork) => {
     try {
       setWalletStatus('connecting');
       setError(null);
@@ -69,21 +106,23 @@ export function useWalletConnection() {
       
       // Check if we're connected to the right network
       const chainId = await getCurrentChainId();
+      setCurrentChainId(chainId);
       console.log("Current chain ID:", chainId);
       
-      // Check if the current chain ID is in our list of supported Ephemery chain IDs
-      if (!isEphemeryNetwork(chainId)) {
-        console.log("Not on Ephemery network. Current chain:", chainId);
-        // Instead of automatically switching, save the pending connection and show dialog
+      // Check if the current chain ID is in our list of supported chain IDs
+      if (!isSupportedNetwork(chainId)) {
+        console.log("Not on a supported network. Current chain:", chainId);
+        // Save the pending connection and show dialog
         setPendingConnection({
           address,
           currentChainId: chainId
         });
+        setSelectedNetwork(networkToUse);
         setShowNetworkDialog(true);
         return; // Stop execution here until user responds to dialog
       }
       
-      console.log("Already on Ephemery network. Proceeding with connection.");
+      console.log("Already on a supported network. Proceeding with connection.");
       // If we're already on the right network, proceed with wallet connection
       await handleCompleteConnection(address);
       
@@ -96,15 +135,15 @@ export function useWalletConnection() {
   };
 
   // Function to handle network switching after user confirms
-  const handleSwitchNetwork = async () => {
+  const handleSwitchNetwork = async (networkToUse = selectedNetwork) => {
     if (!pendingConnection) return;
     
     try {
       setShowNetworkDialog(false);
       const { address } = pendingConnection;
       
-      console.log("Attempting to switch to Ephemery network...");
-      await switchToEphemeryNetwork();
+      console.log(`Attempting to switch to ${networkToUse.chainName} network...`);
+      await switchToNetwork(networkToUse);
       console.log("Network switch successful");
       
       // Now that we've switched networks, complete the connection
@@ -123,7 +162,7 @@ export function useWalletConnection() {
     setShowNetworkDialog(false);
     setPendingConnection(null);
     setWalletStatus('disconnected');
-    toast.info("Connection cancelled. Ephemery network is required for this application.");
+    toast.info("Connection cancelled. A supported network is required for this application.");
   };
 
   // Function to handle the actual wallet connection after network issues are resolved
@@ -161,6 +200,7 @@ export function useWalletConnection() {
   return {
     walletStatus,
     walletAddress,
+    currentChainId,
     error,
     showNetworkDialog,
     isWeb3Available: isWeb3Available(),
@@ -168,6 +208,8 @@ export function useWalletConnection() {
     disconnectWallet,
     handleSwitchNetwork,
     handleCancelNetworkSwitch,
-    formatWalletAddress
+    formatWalletAddress,
+    setSelectedNetwork,
+    selectedNetwork
   };
 }

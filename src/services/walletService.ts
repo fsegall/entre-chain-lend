@@ -1,7 +1,12 @@
 
 import { ethers } from "ethers";
 import { supabase } from "@/integrations/supabase/client";
-import { EPHEMERY_NETWORK, isEphemeryNetwork } from "@/utils/ethereumNetworks";
+import { 
+  DEFAULT_NETWORK, 
+  SUPPORTED_NETWORKS,
+  isSupportedNetwork, 
+  getNetworkFromChainId 
+} from "@/utils/ethereumNetworks";
 import { toast } from "sonner";
 
 // Add a type definition for the window.ethereum object
@@ -31,46 +36,59 @@ export const getCurrentChainId = async (): Promise<string> => {
 };
 
 // Switch the network in user's wallet
-export const switchToEphemeryNetwork = async (): Promise<void> => {
+export const switchToNetwork = async (networkConfig = DEFAULT_NETWORK): Promise<void> => {
   try {
-    console.log("Requesting network switch to chainId:", EPHEMERY_NETWORK.chainId);
+    console.log(`Requesting network switch to chainId: ${networkConfig.chainId}`);
     await window.ethereum.request({
       method: 'wallet_switchEthereumChain',
-      params: [{ chainId: EPHEMERY_NETWORK.chainId }],
+      params: [{ chainId: networkConfig.chainId }],
     });
 
     // Verify the switch was successful
     const newChainId = await getCurrentChainId();
     console.log("After switch, new chainId:", newChainId);
 
-    if (!isEphemeryNetwork(newChainId)) {
-      throw new Error("Network switch failed: Chain ID mismatch");
+    if (!isSupportedNetwork(newChainId)) {
+      throw new Error(`Network switch failed: Chain ID ${newChainId} is not a supported network`);
     }
 
   } catch (switchError: any) {
     console.error("Network switch error:", switchError);
     
     // This error code indicates that the chain has not been added to MetaMask
-    if (switchError.code === 4902 || switchError.message?.includes("wallet_addEthereumChain")) {
-      console.log("Network not found, attempting to add Ephemery network...");
+    if (switchError.code === 4902 || 
+        switchError.message?.includes("wallet_addEthereumChain") || 
+        switchError.message?.includes("Unrecognized chain")) {
+      console.log(`Network not found, attempting to add ${networkConfig.chainName}...`);
       
-      await window.ethereum.request({
-        method: 'wallet_addEthereumChain',
-        params: [
-          {
-            chainId: EPHEMERY_NETWORK.chainId,
-            chainName: EPHEMERY_NETWORK.chainName,
-            nativeCurrency: EPHEMERY_NETWORK.nativeCurrency,
-            rpcUrls: EPHEMERY_NETWORK.rpcUrls,
-            blockExplorerUrls: EPHEMERY_NETWORK.blockExplorerUrls,
-          },
-        ],
-      });
-      
-      // Verify the network was added and switched to
-      const verifyChainId = await getCurrentChainId();
-      if (!isEphemeryNetwork(verifyChainId)) {
-        throw new Error("Failed to add and switch to Ephemery network");
+      try {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [
+            {
+              chainId: networkConfig.chainId,
+              chainName: networkConfig.chainName,
+              nativeCurrency: networkConfig.nativeCurrency,
+              rpcUrls: networkConfig.rpcUrls,
+              blockExplorerUrls: networkConfig.blockExplorerUrls,
+            },
+          ],
+        });
+        
+        // Wait a moment before verifying - MetaMask can take a moment to process
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Verify the network was added and switched to
+        const verifyChainId = await getCurrentChainId();
+        console.log("After adding network, chainId:", verifyChainId);
+        
+        if (!isSupportedNetwork(verifyChainId)) {
+          console.warn(`User did not switch to ${networkConfig.chainName}. Current chain: ${verifyChainId}`);
+          throw new Error(`Failed to switch to ${networkConfig.chainName}. Please try manually adding the network.`);
+        }
+      } catch (addError: any) {
+        console.error("Failed to add network:", addError);
+        throw new Error(`Failed to add ${networkConfig.chainName}: ${addError.message || "Unknown error"}`);
       }
     } else {
       throw switchError;
@@ -101,33 +119,42 @@ export const completeWalletConnection = async (address: string): Promise<any> =>
     // Ask user to sign the message
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
-    const signature = await signer.signMessage(nonceData.message);
     
-    console.log("Message signed:", signature);
-    
-    // Verify the signature with our edge function
-    const { data: verifyData, error: verifyError } = await supabase.functions.invoke('wallet-auth', {
-      body: { 
-        action: 'verify_signature',
-        address,
-        signature,
-        nonce: nonceData.nonce
+    try {
+      const signature = await signer.signMessage(nonceData.message);
+      console.log("Message signed:", signature);
+      
+      // Verify the signature with our edge function
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('wallet-auth', {
+        body: { 
+          action: 'verify_signature',
+          address,
+          signature,
+          nonce: nonceData.nonce
+        }
+      });
+      
+      if (verifyError) {
+        console.error("Signature verification error:", verifyError);
+        throw new Error(`Verification failed: ${verifyError.message}`);
       }
-    });
-    
-    if (verifyError) {
-      console.error("Signature verification error:", verifyError);
-      throw new Error(`Verification failed: ${verifyError.message}`);
+      
+      if (!verifyData || !verifyData.success) {
+        console.error("Invalid verification response:", verifyData);
+        throw new Error(verifyData?.error || "Verification failed");
+      }
+      
+      console.log("Verification successful:", verifyData);
+      
+      return verifyData;
+    } catch (signError: any) {
+      console.error("Signature error:", signError);
+      // Check if user rejected the signature request
+      if (signError.code === 4001 || signError.message?.includes("rejected")) {
+        throw new Error("You must sign the message to verify wallet ownership");
+      }
+      throw new Error(`Failed to sign message: ${signError.message}`);
     }
-    
-    if (!verifyData || !verifyData.success) {
-      console.error("Invalid verification response:", verifyData);
-      throw new Error(verifyData?.error || "Verification failed");
-    }
-    
-    console.log("Verification successful:", verifyData);
-    
-    return verifyData;
   } catch (error: any) {
     console.error("Wallet connection error:", error);
     throw error;

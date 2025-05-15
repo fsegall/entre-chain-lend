@@ -15,7 +15,9 @@ const WalletConnect = () => {
     disconnectWallet,
     handleSwitchNetwork,
     handleCancelNetworkSwitch,
-    formatWalletAddress
+    formatWalletAddress,
+    selectedNetwork,
+    setSelectedNetwork
   } = useWalletConnection();
   
   if (walletStatus === 'connected') {
@@ -44,6 +46,8 @@ const WalletConnect = () => {
         onOpenChange={(open) => !open && handleCancelNetworkSwitch()}
         onConfirm={handleSwitchNetwork}
         onCancel={handleCancelNetworkSwitch}
+        selectedNetwork={selectedNetwork}
+        setSelectedNetwork={setSelectedNetwork}
       />
     </>
   );
