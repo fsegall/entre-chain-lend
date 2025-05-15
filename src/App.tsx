@@ -22,8 +22,7 @@ const queryClient = new QueryClient({
       retry: 1,
       retryDelay: 1000,
       meta: {
-        // Use meta for configuration that can be accessed in onError
-        errorHandler: (error) => {
+        errorHandler: (error: any) => {
           console.error("Query error:", error);
           toast.error("Network error", { 
             description: "There was a problem connecting to the server" 
@@ -33,7 +32,7 @@ const queryClient = new QueryClient({
     },
     mutations: {
       meta: {
-        errorHandler: (error) => {
+        errorHandler: (error: any) => {
           console.error("Mutation error:", error);
           toast.error("Operation failed", { 
             description: "There was a problem processing your request" 
@@ -44,22 +43,23 @@ const queryClient = new QueryClient({
   },
 });
 
-// Add global error handler for queries
-queryClient.setDefaultOptions({
-  queries: {
-    onError: (error) => {
-      const handler = queryClient.getDefaultOptions()?.queries?.meta?.errorHandler;
-      if (handler && typeof handler === 'function') {
-        handler(error);
-      }
+// Add proper error handlers for the query client - with support for latest React Query
+queryClient.setQueryDefaults([],{
+  onError: (error) => {
+    const meta = queryClient.getQueryDefaults([])?.meta;
+    const handler = meta?.errorHandler;
+    if (handler && typeof handler === 'function') {
+      handler(error);
     }
-  },
-  mutations: {
-    onError: (error) => {
-      const handler = queryClient.getDefaultOptions()?.mutations?.meta?.errorHandler;
-      if (handler && typeof handler === 'function') {
-        handler(error);
-      }
+  }
+});
+
+queryClient.setMutationDefaults([],{
+  onError: (error) => {
+    const meta = queryClient.getMutationDefaults([])?.meta;
+    const handler = meta?.errorHandler;
+    if (handler && typeof handler === 'function') {
+      handler(error);
     }
   }
 });
