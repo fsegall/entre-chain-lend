@@ -66,7 +66,7 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("Buffer.from availability check:", typeof window.Buffer?.from === 'function' ? "Buffer.from is available" : "Buffer.from is NOT available");
         
         // Check if the Client ID looks valid
-        if (!WEB3AUTH_CLIENT_ID || WEB3AUTH_CLIENT_ID === 'YOUR_WEB3AUTH_CLIENT_ID_HERE') {
+        if (!WEB3AUTH_CLIENT_ID || WEB3AUTH_CLIENT_ID === 'BNVk83iTB0NVB1d-xwh7Ux1sax3oJSkJOBt6Wft7yrSeBdw9gL3AZUE2Klu76uA5pfhSAB_4E0IwaXZGVnYSqbQ') {
           const errorMsg = "Invalid Web3Auth Client ID. Please update it in the useWeb3Auth.tsx file.";
           console.error(errorMsg);
           setConfigError(errorMsg);
