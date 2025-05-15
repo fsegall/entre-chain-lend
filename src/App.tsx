@@ -33,7 +33,16 @@ const App = () => {
     // Add a global error handler for unhandled errors
     const handleError = (event: ErrorEvent) => {
       console.error("Global error caught:", event.error);
-      setAppError("An unexpected error occurred. Please check the console for details.");
+      
+      // Filter out Web3Auth domain errors to prevent app from crashing
+      const errorMessage = event.error?.message || "An unknown error occurred";
+      if (errorMessage.includes("could not validate redirect") || 
+          errorMessage.includes("whitelist your domain")) {
+        console.log("Web3Auth domain error detected, allowing app to continue loading");
+        // Don't set app error for this specific case, as we'll handle it in the Web3Auth component
+      } else {
+        setAppError("An unexpected error occurred. Please check the console for details.");
+      }
     };
     
     window.addEventListener('error', handleError);
@@ -44,6 +53,26 @@ const App = () => {
     }, 1000);
     
     return () => window.removeEventListener('error', handleError);
+  }, []);
+  
+  // Handle unhandled promise rejections (which might not trigger the 'error' event)
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error("Unhandled promise rejection:", event.reason);
+      
+      // Similar filtering for Web3Auth domain errors
+      const errorMessage = event.reason?.message || "An unknown error occurred";
+      if (errorMessage.includes("could not validate redirect") || 
+          errorMessage.includes("whitelist your domain")) {
+        console.log("Web3Auth domain error in promise, allowing app to continue loading");
+        // Don't set app error for this specific case
+      } else {
+        setAppError("An unexpected error occurred. Please check the console for details.");
+      }
+    };
+    
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    return () => window.removeEventListener('unhandledrejection', handleUnhandledRejection);
   }, []);
   
   // If there's a critical error, show a minimal error UI

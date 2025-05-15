@@ -18,6 +18,7 @@ interface Web3AuthContextType {
   disconnect: () => Promise<void>;
   formatAddress: (address: string) => string;
   configError: string | null;
+  domainError: boolean;
 }
 
 // Create the context with undefined default value
@@ -52,6 +53,7 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [configError, setConfigError] = useState<string | null>(null);
+  const [domainError, setDomainError] = useState<boolean>(false);
   const [initAttempted, setInitAttempted] = useState<boolean>(false);
   const { connectWallet, user } = useAuth();
 
@@ -119,7 +121,17 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         } catch (modalError: any) {
           console.error("Error initializing Web3Auth modal:", modalError);
-          setConfigError(`Web3Auth initialization failed: ${modalError.message}`);
+          
+          // Check if the error is about domain validation
+          if (modalError.message && 
+              (modalError.message.includes("could not validate redirect") || 
+               modalError.message.includes("whitelist your domain"))) {
+            console.error("Domain whitelist error detected:", modalError.message);
+            setDomainError(true);
+            setConfigError("Domain not whitelisted. You need to add this domain to your Web3Auth dashboard.");
+          } else {
+            setConfigError(`Web3Auth initialization failed: ${modalError.message}`);
+          }
         }
       } catch (error: any) {
         console.error("Error in Web3Auth init:", error);
@@ -214,7 +226,8 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
         connect,
         disconnect,
         formatAddress,
-        configError
+        configError,
+        domainError
       }}
     >
       {children}
