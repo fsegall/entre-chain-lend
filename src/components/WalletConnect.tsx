@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -7,6 +6,16 @@ import { ethers } from "ethers";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Add a type definition for the window.ethereum object
 declare global {
@@ -20,6 +29,11 @@ const WalletConnect = () => {
   const [walletAddress, setWalletAddress] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const { user, connectWallet } = useAuth();
+  const [showNetworkDialog, setShowNetworkDialog] = useState(false);
+  const [pendingConnection, setPendingConnection] = useState<{
+    address: string;
+    currentChainId: string;
+  } | null>(null);
   
   // Check if MetaMask or another web3 provider is available
   const isWeb3Available = typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
@@ -45,41 +59,85 @@ const WalletConnect = () => {
       
       // Sepolia testnet chainId is 0xaa36a7 in hex (11155111 in decimal)
       if (chainId !== '0xaa36a7') {
-        // Ask user to switch to Sepolia
-        try {
+        // Instead of automatically switching, save the pending connection and show dialog
+        setPendingConnection({
+          address,
+          currentChainId: chainId
+        });
+        setShowNetworkDialog(true);
+        return; // Stop execution here until user responds to dialog
+      }
+      
+      // If we're already on the right network, proceed with wallet connection
+      await completeWalletConnection(address);
+      
+    } catch (error: any) {
+      console.error("Failed to connect wallet:", error);
+      setError(error.message);
+      setWalletStatus('disconnected');
+      toast.error(error.message || "Failed to connect wallet");
+    }
+  };
+
+  // Function to handle network switching after user confirms
+  const handleSwitchNetwork = async () => {
+    if (!pendingConnection) return;
+    
+    try {
+      setShowNetworkDialog(false);
+      const { address } = pendingConnection;
+      
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0xaa36a7' }], // Sepolia testnet chainId in hex
+        });
+      } catch (switchError: any) {
+        // This error code indicates that the chain has not been added to MetaMask
+        if (switchError.code === 4902) {
           await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0xaa36a7' }], // Sepolia testnet chainId in hex
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: '0xaa36a7',
+                chainName: 'Sepolia Testnet',
+                nativeCurrency: {
+                  name: 'Sepolia ETH',
+                  symbol: 'SepoliaETH',
+                  decimals: 18,
+                },
+                rpcUrls: ['https://sepolia.infura.io/v3/'],
+                blockExplorerUrls: ['https://sepolia.etherscan.io'],
+              },
+            ],
           });
-        } catch (switchError: any) {
-          // This error code indicates that the chain has not been added to MetaMask
-          if (switchError.code === 4902) {
-            try {
-              await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [
-                  {
-                    chainId: '0xaa36a7',
-                    chainName: 'Sepolia Testnet',
-                    nativeCurrency: {
-                      name: 'Sepolia ETH',
-                      symbol: 'SepoliaETH',
-                      decimals: 18,
-                    },
-                    rpcUrls: ['https://sepolia.infura.io/v3/'],
-                    blockExplorerUrls: ['https://sepolia.etherscan.io'],
-                  },
-                ],
-              });
-            } catch (addError) {
-              throw new Error("Failed to add Sepolia network to your wallet");
-            }
-          } else {
-            throw switchError;
-          }
+        } else {
+          throw switchError;
         }
       }
       
+      // Now that we've switched networks, complete the connection
+      await completeWalletConnection(address);
+      
+    } catch (error: any) {
+      console.error("Failed to switch network:", error);
+      setError(error.message);
+      setWalletStatus('disconnected');
+      toast.error(error.message || "Failed to switch network");
+    }
+  };
+
+  // Function to handle the case when user cancels network switch
+  const handleCancelNetworkSwitch = () => {
+    setShowNetworkDialog(false);
+    setPendingConnection(null);
+    setWalletStatus('disconnected');
+    toast.info("Connection cancelled. Sepolia network is required for this application.");
+  };
+
+  // Function to handle the actual wallet connection after network issues are resolved
+  const completeWalletConnection = async (address: string) => {
+    try {
       // Get a nonce from our edge function
       const { data: nonceData, error: nonceError } = await supabase.functions.invoke('wallet-auth', {
         body: { action: 'get_nonce' }
@@ -122,12 +180,14 @@ const WalletConnect = () => {
       // Update local state
       setWalletAddress(address);
       setWalletStatus('connected');
+      setPendingConnection(null);
       toast.success("Wallet connected successfully!");
       
     } catch (error: any) {
-      console.error("Failed to connect wallet:", error);
+      console.error("Failed to complete wallet connection:", error);
       setError(error.message);
       setWalletStatus('disconnected');
+      setPendingConnection(null);
       toast.error(error.message || "Failed to connect wallet");
     }
   };
@@ -187,24 +247,42 @@ const WalletConnect = () => {
   }
 
   return (
-    <Button
-      variant="outline"
-      className="flex items-center gap-2"
-      onClick={connectWeb3Wallet}
-      disabled={walletStatus === 'connecting'}
-    >
-      {walletStatus === 'connecting' ? (
-        <>
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Connecting...</span>
-        </>
-      ) : (
-        <>
-          <Wallet className="h-4 w-4" />
-          <span>Connect Wallet</span>
-        </>
-      )}
-    </Button>
+    <>
+      <Button
+        variant="outline"
+        className="flex items-center gap-2"
+        onClick={connectWeb3Wallet}
+        disabled={walletStatus === 'connecting'}
+      >
+        {walletStatus === 'connecting' ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Connecting...</span>
+          </>
+        ) : (
+          <>
+            <Wallet className="h-4 w-4" />
+            <span>Connect Wallet</span>
+          </>
+        )}
+      </Button>
+      
+      <AlertDialog open={showNetworkDialog} onOpenChange={setShowNetworkDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Network Switch Required</AlertDialogTitle>
+            <AlertDialogDescription>
+              This application requires the Sepolia test network. 
+              Would you like to switch your wallet to the Sepolia network now?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelNetworkSwitch}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSwitchNetwork}>Switch to Sepolia</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
