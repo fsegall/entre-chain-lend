@@ -4,6 +4,8 @@ import ConnectedWallet from "./wallet/ConnectedWallet";
 import NoWalletButton from "./wallet/NoWalletButton";
 import ConnectWalletButton from "./wallet/ConnectWalletButton";
 import NetworkSwitchDialog from "./wallet/NetworkSwitchDialog";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 const WalletConnect = () => {
   const {
@@ -17,9 +19,17 @@ const WalletConnect = () => {
     handleCancelNetworkSwitch,
     formatWalletAddress,
     selectedNetwork,
-    setSelectedNetwork
+    setSelectedNetwork,
+    error
   } = useWalletConnection();
   
+  // Show error if there's an error
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
   if (walletStatus === 'connected') {
     return (
       <ConnectedWallet

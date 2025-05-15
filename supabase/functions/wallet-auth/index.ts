@@ -15,19 +15,9 @@ const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
-// Map to store nonces
-const nonces = new Map<string, { nonce: string, createdAt: number }>()
-
-// Cleanup old nonces every 5 minutes
-setInterval(() => {
-  const now = Date.now()
-  // Remove nonces older than 10 minutes
-  for (const [key, value] of nonces.entries()) {
-    if (now - value.createdAt > 10 * 60 * 1000) {
-      nonces.delete(key)
-    }
-  }
-}, 5 * 60 * 1000)
+// Map to store nonces - using a global variable for this demo
+// In production, you would use a database or Redis to store nonces
+const nonceStore = new Map<string, { nonce: string, createdAt: number }>();
 
 // Handle wallet authentication requests
 serve(async (req) => {
@@ -37,20 +27,22 @@ serve(async (req) => {
   }
 
   try {
-    const { action, address, signature, nonce } = await req.json()
+    const { action, address, signature, nonce } = await req.json();
+    console.log(`Received request with action: ${action}`);
 
     if (action === 'get_nonce') {
       // Generate a random nonce
-      const newNonce = crypto.randomUUID()
-      const message = `Sign this message to verify your wallet address: ${newNonce}`
+      const newNonce = crypto.randomUUID();
+      const message = `Sign this message to verify your wallet address: ${newNonce}`;
       
       // Store the nonce with a timestamp
-      nonces.set(newNonce, { 
+      nonceStore.set(newNonce, { 
         nonce: newNonce, 
         createdAt: Date.now() 
-      })
+      });
       
-      console.log(`Generated nonce: ${newNonce}`)
+      console.log(`Generated nonce: ${newNonce}`);
+      console.log(`Active nonces: ${nonceStore.size}`);
       
       return new Response(
         JSON.stringify({ 
@@ -59,13 +51,15 @@ serve(async (req) => {
           nonce: newNonce 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      );
     }
     
     if (action === 'verify_signature') {
+      console.log(`Verifying signature for address: ${address} and nonce: ${nonce}`);
+      
       // Verify the signature
       if (!address || !signature || !nonce) {
-        console.error('Missing parameters', { address, signature, nonce })
+        console.error('Missing parameters', { address, signature, nonce });
         return new Response(
           JSON.stringify({ 
             success: false, 
@@ -75,13 +69,17 @@ serve(async (req) => {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
-        )
+        );
       }
 
+      // Debug: log all active nonces
+      console.log(`Checking nonce: ${nonce}`);
+      console.log(`Available nonces: ${Array.from(nonceStore.keys()).join(', ')}`);
+
       // Check if the nonce exists and is valid
-      const nonceData = nonces.get(nonce)
+      const nonceData = nonceStore.get(nonce);
       if (!nonceData) {
-        console.error('Invalid or expired nonce', { nonce })
+        console.error(`Invalid or expired nonce: ${nonce}`);
         return new Response(
           JSON.stringify({ 
             success: false, 
@@ -91,24 +89,24 @@ serve(async (req) => {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
-        )
+        );
       }
       
       // Construct the message that was signed
-      const message = `Sign this message to verify your wallet address: ${nonce}`
+      const message = `Sign this message to verify your wallet address: ${nonce}`;
       
       try {
         // Recover the address from the signature
-        const recoveredAddress = ethers.verifyMessage(message, signature)
+        const recoveredAddress = ethers.verifyMessage(message, signature);
         
         console.log('Verification attempt', { 
           providedAddress: address.toLowerCase(), 
           recoveredAddress: recoveredAddress.toLowerCase() 
-        })
+        });
         
         // Check if the recovered address matches the provided address
         if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
-          console.error('Signature verification failed - address mismatch')
+          console.error('Signature verification failed - address mismatch');
           return new Response(
             JSON.stringify({ 
               success: false, 
@@ -118,15 +116,13 @@ serve(async (req) => {
               status: 400,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
             }
-          )
+          );
         }
         
         // Delete the nonce after successful verification
-        nonces.delete(nonce)
+        nonceStore.delete(nonce);
         
-        // Here we would typically update the user's profile or session
-        // For now we'll just return success
-        console.log('Signature verification successful for address', address)
+        console.log('Signature verification successful for address', address);
         
         return new Response(
           JSON.stringify({ 
@@ -134,9 +130,9 @@ serve(async (req) => {
             message: 'Wallet verified successfully'
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        );
       } catch (error) {
-        console.error('Signature verification error', error)
+        console.error('Signature verification error', error);
         return new Response(
           JSON.stringify({ 
             success: false, 
@@ -146,7 +142,7 @@ serve(async (req) => {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
-        )
+        );
       }
     }
 
@@ -159,10 +155,10 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
-    )
+    );
 
   } catch (error) {
-    console.error('Edge function error', error)
+    console.error('Edge function error', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
@@ -172,6 +168,6 @@ serve(async (req) => {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
-    )
+    );
   }
-})
+});

@@ -124,6 +124,9 @@ export const completeWalletConnection = async (address: string): Promise<any> =>
       const signature = await signer.signMessage(nonceData.message);
       console.log("Message signed:", signature);
       
+      // Add a small delay to ensure the edge function has processed the nonce
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Verify the signature with our edge function
       const { data: verifyData, error: verifyError } = await supabase.functions.invoke('wallet-auth', {
         body: { 

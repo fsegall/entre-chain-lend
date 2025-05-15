@@ -2,4 +2,5 @@
 project_id = "gkikgsfbwhlzassknnun"
 
 [functions.wallet-auth]
-verify_jwt = true
+verify_jwt = false
+
