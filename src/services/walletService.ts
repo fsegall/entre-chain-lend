@@ -79,42 +79,59 @@ export const switchToEphemeryNetwork = async (): Promise<void> => {
 };
 
 // Complete the wallet connection with signature verification
-export const completeWalletConnection = async (address: string): Promise<void> => {
-  // Get a nonce from our edge function
-  const { data: nonceData, error: nonceError } = await supabase.functions.invoke('wallet-auth', {
-    body: { action: 'get_nonce' }
-  });
-  
-  if (nonceError) {
-    throw new Error(`Failed to get nonce: ${nonceError.message}`);
-  }
-  
-  console.log("Received nonce message to sign:", nonceData.message);
-  
-  // Ask user to sign the message
-  const provider = new ethers.BrowserProvider(window.ethereum);
-  const signer = await provider.getSigner();
-  const signature = await signer.signMessage(nonceData.message);
-  
-  console.log("Message signed:", signature);
-  
-  // Verify the signature with our edge function
-  const { data: verifyData, error: verifyError } = await supabase.functions.invoke('wallet-auth', {
-    body: { 
-      action: 'verify_signature',
-      address,
-      signature,
-      nonce: nonceData.nonce
+export const completeWalletConnection = async (address: string): Promise<any> => {
+  try {
+    // Get a nonce from our edge function
+    const { data: nonceData, error: nonceError } = await supabase.functions.invoke('wallet-auth', {
+      body: { action: 'get_nonce' }
+    });
+    
+    if (nonceError) {
+      console.error("Nonce request error:", nonceError);
+      throw new Error(`Failed to get nonce: ${nonceError.message}`);
     }
-  });
-  
-  if (verifyError) {
-    throw new Error(`Verification failed: ${verifyError.message}`);
+    
+    if (!nonceData || !nonceData.message || !nonceData.nonce) {
+      console.error("Invalid nonce response:", nonceData);
+      throw new Error("Invalid nonce response from server");
+    }
+    
+    console.log("Received nonce message to sign:", nonceData.message);
+    
+    // Ask user to sign the message
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const signature = await signer.signMessage(nonceData.message);
+    
+    console.log("Message signed:", signature);
+    
+    // Verify the signature with our edge function
+    const { data: verifyData, error: verifyError } = await supabase.functions.invoke('wallet-auth', {
+      body: { 
+        action: 'verify_signature',
+        address,
+        signature,
+        nonce: nonceData.nonce
+      }
+    });
+    
+    if (verifyError) {
+      console.error("Signature verification error:", verifyError);
+      throw new Error(`Verification failed: ${verifyError.message}`);
+    }
+    
+    if (!verifyData || !verifyData.success) {
+      console.error("Invalid verification response:", verifyData);
+      throw new Error(verifyData?.error || "Verification failed");
+    }
+    
+    console.log("Verification successful:", verifyData);
+    
+    return verifyData;
+  } catch (error: any) {
+    console.error("Wallet connection error:", error);
+    throw error;
   }
-  
-  console.log("Verification successful:", verifyData);
-  
-  return verifyData;
 };
 
 // Format wallet address for display

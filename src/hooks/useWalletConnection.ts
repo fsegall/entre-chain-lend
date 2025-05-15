@@ -129,7 +129,8 @@ export function useWalletConnection() {
   // Function to handle the actual wallet connection after network issues are resolved
   const handleCompleteConnection = async (address: string) => {
     try {
-      await completeWalletConnection(address);
+      const result = await completeWalletConnection(address);
+      console.log("Wallet connection complete:", result);
       
       // If successful, update the user's profile
       if (user) {
@@ -147,7 +148,7 @@ export function useWalletConnection() {
       setError(error.message);
       setWalletStatus('disconnected');
       setPendingConnection(null);
-      toast.error(error.message || "Failed to connect wallet");
+      toast.error(`Failed to connect wallet: ${error.message}`);
     }
   };
 

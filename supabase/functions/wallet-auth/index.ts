@@ -19,7 +19,9 @@ Deno.serve(async (req) => {
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
   
   try {
-    const { action } = await req.json();
+    const body = await req.json();
+    const { action } = body;
+    console.log("Received wallet-auth request with action:", action);
     
     // Create Supabase client using the Authorization header from the request
     const authHeader = req.headers.get('Authorization') ?? '';
@@ -29,12 +31,6 @@ Deno.serve(async (req) => {
 
     // Check if the user is authenticated
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session && action !== 'get_nonce') {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
     switch (action) {
       case 'get_nonce': {
@@ -42,56 +38,103 @@ Deno.serve(async (req) => {
         const nonce = crypto.randomUUID();
         const message = `Sign this message to verify wallet ownership: ${nonce}`;
         
+        console.log("Generated nonce:", nonce);
+        
         return new Response(JSON.stringify({ message, nonce }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       
       case 'verify_signature': {
-        const { address, signature, nonce } = await req.json();
+        const { address, signature, nonce } = body;
         
-        // Recreate the message that was signed
-        const message = `Sign this message to verify wallet ownership: ${nonce}`;
+        // Log incoming verification data
+        console.log("Verifying signature with:", { 
+          address: address?.toLowerCase(),
+          signatureLength: signature?.length,
+          nonceProvided: !!nonce
+        });
         
-        // Verify the signature
-        const recoveredAddress = ethers.verifyMessage(message, signature);
-        
-        if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
-          return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+        if (!address || !signature || !nonce) {
+          console.error("Missing required parameters:", { address, signature: !!signature, nonce });
+          return new Response(JSON.stringify({ 
+            error: 'Missing required parameters: address, signature, or nonce' 
+          }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
         
-        // If the user is authenticated, update their profile with the wallet address
-        if (session) {
-          // Update the user's profile with the wallet address
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .update({ wallet_address: address })
-            .eq('id', session.user.id);
+        // Recreate the message that was signed
+        const message = `Sign this message to verify wallet ownership: ${nonce}`;
+        
+        try {
+          // Verify the signature
+          console.log("Verifying message:", message);
+          const recoveredAddress = ethers.verifyMessage(message, signature);
+          console.log("Recovered address:", recoveredAddress);
+          console.log("Provided address:", address);
           
-          if (profileError) {
-            console.error('Error updating profile:', profileError);
-            return new Response(JSON.stringify({ error: 'Failed to update profile' }), {
-              status: 500,
+          // Case-insensitive address comparison
+          if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
+            console.error("Address mismatch:", {
+              recovered: recoveredAddress.toLowerCase(),
+              provided: address.toLowerCase()
+            });
+            
+            return new Response(JSON.stringify({ 
+              error: 'Invalid signature: recovered address does not match provided address',
+              recoveredAddress,
+              providedAddress: address
+            }), {
+              status: 400,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
           }
           
+          // If the user is authenticated, update their profile with the wallet address
+          if (session) {
+            console.log("Updating wallet address for user:", session.user.id);
+            
+            // Update the user's profile with the wallet address
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .update({ wallet_address: address })
+              .eq('id', session.user.id)
+              .select();
+            
+            if (profileError) {
+              console.error('Error updating profile:', profileError);
+              return new Response(JSON.stringify({ error: 'Failed to update profile' }), {
+                status: 500,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              });
+            }
+            
+            return new Response(JSON.stringify({ 
+              success: true,
+              message: 'Wallet connected successfully',
+              profile: profileData
+            }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          } else {
+            // For unauthenticated use cases, just return the verified address
+            return new Response(JSON.stringify({ 
+              success: true,
+              address: recoveredAddress,
+              message: 'Signature verified successfully'
+            }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        } catch (verifyError) {
+          console.error("Signature verification error:", verifyError);
           return new Response(JSON.stringify({ 
-            success: true,
-            message: 'Wallet connected successfully'
+            error: `Signature verification failed: ${verifyError.message}`,
+            details: String(verifyError)
           }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        } else {
-          // For unauthenticated use cases, just return the verified address
-          return new Response(JSON.stringify({ 
-            success: true,
-            address: recoveredAddress,
-            message: 'Signature verified successfully'
-          }), {
+            status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
@@ -105,7 +148,10 @@ Deno.serve(async (req) => {
     }
   } catch (error) {
     console.error('Wallet auth error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      stack: String(error.stack)
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
