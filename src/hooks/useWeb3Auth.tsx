@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Web3Auth } from '@web3auth/modal';
 import { CHAIN_NAMESPACES, IProvider } from '@web3auth/base';
@@ -30,7 +29,7 @@ const Web3AuthContext = createContext<Web3AuthContextType | undefined>(undefined
 const WEB3AUTH_CLIENT_ID = 'BNVk83iTB0NVB1d-xwh7Ux1sax3oJSkJOBt6Wft7yrSeBdw9gL3AZUE2Klu76uA5pfhSAB_4E0IwaXZGVnYSqbQ';
 
 // You'll need to provide your Infura Project ID
-const INFURA_PROJECT_ID = ''; // This will be provided by the user
+const INFURA_PROJECT_ID = 'faca901f5f964535b01ff9cabfd64bb3'; // Hardcoded for now
 
 const web3AuthOptions = {
   clientId: WEB3AUTH_CLIENT_ID,
@@ -38,7 +37,7 @@ const web3AuthOptions = {
   chainConfig: {
     chainNamespace: CHAIN_NAMESPACES.EIP155,
     chainId: '0x1', // Ethereum mainnet
-    rpcTarget: `https://mainnet.infura.io/v3/${"faca901f5f964535b01ff9cabfd64bb3"}`, // Using Infura mainnet
+    rpcTarget: `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`, // Using Infura mainnet
   },
   uiConfig: {
     theme: 'light',
