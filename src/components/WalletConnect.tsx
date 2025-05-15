@@ -20,6 +20,7 @@ const WalletConnect = () => {
     formatWalletAddress,
     selectedNetwork,
     setSelectedNetwork,
+    refreshWalletAddress,
     error
   } = useWalletConnection();
   
@@ -40,6 +41,21 @@ const WalletConnect = () => {
       showNetworkDialog
     });
   }, [walletStatus, walletAddress, isWeb3Available, showNetworkDialog]);
+
+  // Ensure wallet address is always up to date
+  useEffect(() => {
+    if (walletStatus === 'connected') {
+      // Refresh wallet address when component mounts
+      refreshWalletAddress();
+      
+      // Set up periodic refresh
+      const refreshInterval = setInterval(() => {
+        refreshWalletAddress();
+      }, 3000);
+      
+      return () => clearInterval(refreshInterval);
+    }
+  }, [walletStatus, refreshWalletAddress]);
   
   const handleConnect = async () => {
     try {
@@ -59,12 +75,16 @@ const WalletConnect = () => {
     }
   };
 
+  const handleDisconnect = () => {
+    disconnectWallet();
+  };
+
   if (walletStatus === 'connected') {
     return (
       <ConnectedWallet
         address={walletAddress}
         formatAddress={formatWalletAddress}
-        onDisconnect={disconnectWallet}
+        onDisconnect={handleDisconnect}
       />
     );
   }

@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { 
@@ -32,6 +32,12 @@ export function useWalletConnection() {
   const [pendingConnection, setPendingConnection] = useState<PendingConnection>(null);
   const [selectedNetwork, setSelectedNetwork] = useState(DEFAULT_NETWORK);
   const { user, connectWallet } = useAuth();
+  const addressRef = useRef<string>('');
+
+  // Update the ref whenever walletAddress changes
+  useEffect(() => {
+    addressRef.current = walletAddress;
+  }, [walletAddress]);
 
   // Listen for chain changes
   useEffect(() => {
@@ -80,11 +86,14 @@ export function useWalletConnection() {
       } else {
         const newAddress = accounts[0];
         console.log("New address from accountsChanged:", newAddress);
+        console.log("Current address reference:", addressRef.current);
         
         if (walletStatus === 'connected') {
           // If already connected, handle as an account switch
-          if (newAddress !== walletAddress) {
-            // IMPORTANT: Update the address BEFORE verification
+          if (newAddress.toLowerCase() !== addressRef.current.toLowerCase()) {
+            console.log("Detected account switch to:", newAddress);
+            
+            // Update the address FIRST - this ensures UI updates immediately
             setWalletAddress(newAddress);
             toast.info("Wallet account changed, verifying new account...");
             
@@ -97,18 +106,72 @@ export function useWalletConnection() {
               setError(error.message);
               toast.error(`Failed to verify new account: ${error.message}`);
             }
+          } else {
+            console.log("Address received matches current address, no change needed");
           }
         }
         // If not connected yet, the regular connect flow will handle it
       }
     };
 
+    // Add event listener
     window.ethereum.on('accountsChanged', handleAccountsChanged);
+    
+    // Also check current accounts on mount to ensure accuracy
+    const checkCurrentAccounts = async () => {
+      try {
+        if (walletStatus === 'connected') {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          if (accounts && accounts.length > 0) {
+            const currentAddress = accounts[0];
+            console.log("Current account check:", { currentAddress, storedAddress: walletAddress });
+            
+            if (currentAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+              console.log("Detected address mismatch, updating to:", currentAddress);
+              setWalletAddress(currentAddress);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error checking current accounts:", err);
+      }
+    };
+    
+    checkCurrentAccounts();
     
     return () => {
       window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
     };
   }, [walletStatus, walletAddress]);
+
+  // Expose a method to force address check/refresh
+  const refreshWalletAddress = useCallback(async () => {
+    if (!isWeb3Available() || walletStatus !== 'connected') return;
+    
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      if (accounts && accounts.length > 0) {
+        const currentAddress = accounts[0];
+        console.log("Refreshing wallet address. Current:", walletAddress, "From wallet:", currentAddress);
+        
+        if (currentAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+          console.log("Force updating wallet address to:", currentAddress);
+          setWalletAddress(currentAddress);
+        }
+      }
+    } catch (err) {
+      console.error("Error refreshing wallet address:", err);
+    }
+  }, [walletStatus, walletAddress]);
+
+  // Periodically check for wallet address changes
+  useEffect(() => {
+    if (walletStatus !== 'connected') return;
+    
+    const interval = setInterval(refreshWalletAddress, 2000);
+    
+    return () => clearInterval(interval);
+  }, [walletStatus, refreshWalletAddress]);
 
   const connectWeb3Wallet = async (networkToUse = selectedNetwork) => {
     try {
@@ -230,6 +293,7 @@ export function useWalletConnection() {
     handleCancelNetworkSwitch,
     formatWalletAddress,
     setSelectedNetwork,
-    selectedNetwork
+    selectedNetwork,
+    refreshWalletAddress
   };
 }
