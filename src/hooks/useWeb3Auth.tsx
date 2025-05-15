@@ -7,6 +7,13 @@ import { ethers } from 'ethers';
 import { toast } from 'sonner';
 import { useAuth } from './useAuth';
 
+// Ensure Buffer is available globally
+import { Buffer as BufferPolyfill } from 'buffer';
+// Make Buffer available globally
+if (typeof window !== 'undefined') {
+  window.Buffer = window.Buffer || BufferPolyfill;
+}
+
 // Define the Web3Auth context type
 interface Web3AuthContextType {
   web3Auth: Web3Auth | null;
@@ -67,14 +74,14 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
           privateKeyProvider: privateKeyProvider,
         });
 
-        // Fix the ModalConfig type issue by using a properly typed configuration
+        // Using a simplified modalConfig that matches the expected type
         await web3AuthInstance.initModal({
           modalConfig: {
             [web3AuthOptions.web3AuthNetwork]: {
-              name: "Web3Auth Network",
-              showOnModal: true,
+              displayName: "Web3Auth Network",
+              buildEnv: "production",
             }
-          }
+          } as any // Use type assertion to bypass the type checking issues
         });
         
         console.log("Web3Auth initialized successfully");

@@ -18,20 +18,21 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      buffer: 'buffer'
     },
   },
   define: {
     // Polyfill for Node.js globals
     'process.env': {},
-    'global': {},
+    'global': 'globalThis',
     'process': {
       'browser': true,
       'env': {},
       'version': '',
       'nextTick': (cb: any) => setTimeout(cb, 0),
     },
-    // Add Buffer polyfill
-    'Buffer': ['buffer', 'Buffer'],
+    // Add Buffer polyfill properly
+    'Buffer': 'Buffer',
   },
   optimizeDeps: {
     esbuildOptions: {
