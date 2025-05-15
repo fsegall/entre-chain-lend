@@ -20,4 +20,15 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  define: {
+    // Polyfill for Node.js globals
+    'process.env': {},
+    'global': {},
+    'process': {
+      'browser': true,
+      'env': {},
+      'version': '',
+      'nextTick': (cb: any) => setTimeout(cb, 0),
+    },
+  },
 }));

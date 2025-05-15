@@ -54,6 +54,7 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const init = async () => {
       try {
+        console.log("Initializing Web3Auth...");
         const privateKeyProvider = new EthereumPrivateKeyProvider({
           config: { chainConfig: web3AuthOptions.chainConfig },
         });
@@ -66,15 +67,26 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
           privateKeyProvider: privateKeyProvider,
         });
 
-        await web3AuthInstance.initModal();
+        await web3AuthInstance.initModal({
+          modalConfig: {
+            [web3AuthOptions.web3AuthNetwork]: {
+              displayName: "Web3Auth Network",
+              buildEnv: "production",
+            }
+          }
+        });
+        
+        console.log("Web3Auth initialized successfully");
         setWeb3Auth(web3AuthInstance);
 
         // Check if user is already logged in
         if (web3AuthInstance.provider) {
+          console.log("Provider already exists, user might be logged in");
           const ethersProvider = new ethers.BrowserProvider(web3AuthInstance.provider as any);
           const signer = await ethersProvider.getSigner();
           const userAddress = await signer.getAddress();
           
+          console.log("User is logged in with address:", userAddress);
           setAddress(userAddress);
           setProvider(web3AuthInstance.provider as any);
           setIsConnected(true);
