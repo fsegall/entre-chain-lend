@@ -26,9 +26,31 @@ const WalletConnect = () => {
   // Show error if there's an error
   useEffect(() => {
     if (error) {
+      console.log("Error in wallet connection:", error);
       toast.error(error);
     }
   }, [error]);
+
+  // Log component state for debugging
+  useEffect(() => {
+    console.log("WalletConnect component state:", { 
+      walletStatus,
+      walletAddress,
+      isWeb3Available,
+      showNetworkDialog
+    });
+  }, [walletStatus, walletAddress, isWeb3Available, showNetworkDialog]);
+  
+  const handleConnect = async () => {
+    try {
+      // Clear any existing errors from previous attempts
+      toast.dismiss();
+      await connectWeb3Wallet();
+    } catch (err) {
+      console.error("Connection error in WalletConnect:", err);
+      toast.error("Failed to connect wallet. Please try again.");
+    }
+  };
 
   if (walletStatus === 'connected') {
     return (
@@ -48,7 +70,7 @@ const WalletConnect = () => {
     <>
       <ConnectWalletButton
         isConnecting={walletStatus === 'connecting'}
-        onConnect={connectWeb3Wallet}
+        onConnect={handleConnect}
       />
       
       <NetworkSwitchDialog

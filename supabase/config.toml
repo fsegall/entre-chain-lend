@@ -3,4 +3,3 @@ project_id = "gkikgsfbwhlzassknnun"
 
 [functions.wallet-auth]
 verify_jwt = false
-

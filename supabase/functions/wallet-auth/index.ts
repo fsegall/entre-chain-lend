@@ -15,10 +15,6 @@ const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
-// Map to store nonces - using a global variable for this demo
-// In production, you would use a database or Redis to store nonces
-const nonceStore = new Map<string, { nonce: string, createdAt: number }>();
-
 // Handle wallet authentication requests
 serve(async (req) => {
   // Handle CORS preflight request
@@ -35,14 +31,30 @@ serve(async (req) => {
       const newNonce = crypto.randomUUID();
       const message = `Sign this message to verify your wallet address: ${newNonce}`;
       
-      // Store the nonce with a timestamp
-      nonceStore.set(newNonce, { 
-        nonce: newNonce, 
-        createdAt: Date.now() 
-      });
+      // Store the nonce in a temporary table with expiration
+      const { error } = await supabaseAdmin
+        .from('wallet_auth_nonces')
+        .insert({ 
+          nonce: newNonce, 
+          created_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() // 5 minutes expiration
+        });
+      
+      if (error) {
+        console.error('Error storing nonce:', error);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Failed to generate authentication challenge' 
+          }),
+          { 
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
       
       console.log(`Generated nonce: ${newNonce}`);
-      console.log(`Active nonces: ${nonceStore.size}`);
       
       return new Response(
         JSON.stringify({ 
@@ -72,18 +84,52 @@ serve(async (req) => {
         );
       }
 
-      // Debug: log all active nonces
-      console.log(`Checking nonce: ${nonce}`);
-      console.log(`Available nonces: ${Array.from(nonceStore.keys()).join(', ')}`);
-
       // Check if the nonce exists and is valid
-      const nonceData = nonceStore.get(nonce);
-      if (!nonceData) {
-        console.error(`Invalid or expired nonce: ${nonce}`);
+      const { data: nonceData, error: nonceError } = await supabaseAdmin
+        .from('wallet_auth_nonces')
+        .select('nonce, created_at, expires_at, used')
+        .eq('nonce', nonce)
+        .single();
+
+      console.log('Nonce lookup result:', { nonceData, nonceError });
+      
+      if (nonceError || !nonceData) {
+        console.error(`No nonce found: ${nonce}`);
         return new Response(
           JSON.stringify({ 
             success: false, 
             error: 'Invalid or expired nonce' 
+          }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      // Check if the nonce has already been used
+      if (nonceData.used) {
+        console.error(`Nonce already used: ${nonce}`);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Nonce has already been used' 
+          }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
+      // Check if the nonce has expired
+      const expiresAt = new Date(nonceData.expires_at);
+      if (expiresAt < new Date()) {
+        console.error(`Nonce expired: ${nonce}, expired at ${expiresAt.toISOString()}`);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Nonce has expired' 
           }),
           { 
             status: 400,
@@ -119,8 +165,15 @@ serve(async (req) => {
           );
         }
         
-        // Delete the nonce after successful verification
-        nonceStore.delete(nonce);
+        // Mark the nonce as used
+        const { error: updateError } = await supabaseAdmin
+          .from('wallet_auth_nonces')
+          .update({ used: true })
+          .eq('nonce', nonce);
+          
+        if (updateError) {
+          console.error('Error marking nonce as used:', updateError);
+        }
         
         console.log('Signature verification successful for address', address);
         
