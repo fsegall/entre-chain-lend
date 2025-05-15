@@ -34,7 +34,7 @@ const ConnectedWallet = ({
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse-slow"></div>
               <span className="font-mono text-xs md:text-sm">
-                {formattedAddress || formatAddress(address)}
+                {formattedAddress}
               </span>
             </div>
           </Button>
