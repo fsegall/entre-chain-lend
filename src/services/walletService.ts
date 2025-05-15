@@ -99,7 +99,10 @@ export const switchToNetwork = async (networkConfig = DEFAULT_NETWORK): Promise<
 // Complete the wallet connection with signature verification
 export const completeWalletConnection = async (address: string): Promise<any> => {
   try {
+    console.log("Starting wallet connection process for address:", address);
+    
     // Get a nonce from our edge function
+    console.log("Requesting nonce from wallet-auth function");
     const { data: nonceData, error: nonceError } = await supabase.functions.invoke('wallet-auth', {
       body: { action: 'get_nonce' }
     });
@@ -121,13 +124,16 @@ export const completeWalletConnection = async (address: string): Promise<any> =>
     const signer = await provider.getSigner();
     
     try {
+      console.log("Requesting user to sign message");
       const signature = await signer.signMessage(nonceData.message);
-      console.log("Message signed:", signature);
+      console.log("Message signed successfully");
       
       // Add a small delay to ensure the edge function has processed the nonce
+      console.log("Waiting before verification...");
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Verify the signature with our edge function
+      console.log("Verifying signature with wallet-auth function");
       const { data: verifyData, error: verifyError } = await supabase.functions.invoke('wallet-auth', {
         body: { 
           action: 'verify_signature',
@@ -136,6 +142,8 @@ export const completeWalletConnection = async (address: string): Promise<any> =>
           nonce: nonceData.nonce
         }
       });
+      
+      console.log("Verification response:", verifyData, verifyError);
       
       if (verifyError) {
         console.error("Signature verification error:", verifyError);

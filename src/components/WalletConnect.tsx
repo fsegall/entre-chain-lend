@@ -26,7 +26,7 @@ const WalletConnect = () => {
   // Show error if there's an error
   useEffect(() => {
     if (error) {
-      console.log("Error in wallet connection:", error);
+      console.error("Error in wallet connection:", error);
       toast.error(error);
     }
   }, [error]);
@@ -45,10 +45,17 @@ const WalletConnect = () => {
     try {
       // Clear any existing errors from previous attempts
       toast.dismiss();
+      
+      // Show connecting toast
+      const toastId = toast.loading("Connecting to wallet...");
+      
       await connectWeb3Wallet();
-    } catch (err) {
+      
+      // Clear the loading toast
+      toast.dismiss(toastId);
+    } catch (err: any) {
       console.error("Connection error in WalletConnect:", err);
-      toast.error("Failed to connect wallet. Please try again.");
+      toast.error(`Failed to connect wallet: ${err.message}`);
     }
   };
 

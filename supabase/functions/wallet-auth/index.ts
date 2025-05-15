@@ -1,226 +1,184 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { ethers } from "https://esm.sh/ethers@6.11.1/dist/ethers.js";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Set up CORS headers for the edge function
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
-// Create a single supabase client for the edge function
-const supabaseAdmin = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-)
+// Initialize Supabase client
+const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Handle wallet authentication requests
 serve(async (req) => {
-  // Handle CORS preflight request
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
-
+  
   try {
+    // Parse request body
     const { action, address, signature, nonce } = await req.json();
-    console.log(`Received request with action: ${action}`);
-
-    if (action === 'get_nonce') {
-      // Generate a random nonce
-      const newNonce = crypto.randomUUID();
-      const message = `Sign this message to verify your wallet address: ${newNonce}`;
-      
-      // Store the nonce in a temporary table with expiration
-      const { error } = await supabaseAdmin
-        .from('wallet_auth_nonces')
-        .insert({ 
-          nonce: newNonce, 
-          created_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() // 5 minutes expiration
-        });
-      
-      if (error) {
-        console.error('Error storing nonce:', error);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Failed to generate authentication challenge' 
-          }),
-          { 
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-      
-      console.log(`Generated nonce: ${newNonce}`);
-      
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message,
-          nonce: newNonce 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log(`Wallet-auth function called with action: ${action}`);
     
-    if (action === 'verify_signature') {
-      console.log(`Verifying signature for address: ${address} and nonce: ${nonce}`);
-      
-      // Verify the signature
-      if (!address || !signature || !nonce) {
-        console.error('Missing parameters', { address, signature, nonce });
+    // Handle different actions
+    switch (action) {
+      case 'get_nonce':
+        return await handleGetNonce(req);
+      case 'verify_signature':
+        return await handleVerifySignature(req, address, signature, nonce);
+      default:
         return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Missing required parameters' 
-          }),
-          { 
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
+          JSON.stringify({ error: "Invalid action" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
-      }
-
-      // Check if the nonce exists and is valid
-      const { data: nonceData, error: nonceError } = await supabaseAdmin
-        .from('wallet_auth_nonces')
-        .select('nonce, created_at, expires_at, used')
-        .eq('nonce', nonce)
-        .single();
-
-      console.log('Nonce lookup result:', { nonceData, nonceError });
-      
-      if (nonceError || !nonceData) {
-        console.error(`No nonce found: ${nonce}`);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Invalid or expired nonce' 
-          }),
-          { 
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-
-      // Check if the nonce has already been used
-      if (nonceData.used) {
-        console.error(`Nonce already used: ${nonce}`);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Nonce has already been used' 
-          }),
-          { 
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-      
-      // Check if the nonce has expired
-      const expiresAt = new Date(nonceData.expires_at);
-      if (expiresAt < new Date()) {
-        console.error(`Nonce expired: ${nonce}, expired at ${expiresAt.toISOString()}`);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Nonce has expired' 
-          }),
-          { 
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-      
-      // Construct the message that was signed
-      const message = `Sign this message to verify your wallet address: ${nonce}`;
-      
-      try {
-        // Recover the address from the signature
-        const recoveredAddress = ethers.verifyMessage(message, signature);
-        
-        console.log('Verification attempt', { 
-          providedAddress: address.toLowerCase(), 
-          recoveredAddress: recoveredAddress.toLowerCase() 
-        });
-        
-        // Check if the recovered address matches the provided address
-        if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
-          console.error('Signature verification failed - address mismatch');
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: 'Signature verification failed - address mismatch' 
-            }),
-            { 
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
-          );
-        }
-        
-        // Mark the nonce as used
-        const { error: updateError } = await supabaseAdmin
-          .from('wallet_auth_nonces')
-          .update({ used: true })
-          .eq('nonce', nonce);
-          
-        if (updateError) {
-          console.error('Error marking nonce as used:', updateError);
-        }
-        
-        console.log('Signature verification successful for address', address);
-        
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            message: 'Wallet verified successfully'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      } catch (error) {
-        console.error('Signature verification error', error);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: `Signature verification failed: ${error.message}` 
-          }),
-          { 
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
     }
-
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: 'Invalid action' 
-      }),
-      { 
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
-
   } catch (error) {
-    console.error('Edge function error', error);
+    console.error("Error processing request:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: `Error processing request: ${error.message}` 
-      }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({ error: error.message || "Internal server error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
+
+// Generate a new nonce for the user and store it in the database
+async function handleGetNonce(req) {
+  try {
+    // Generate a UUID for the nonce
+    const nonce = crypto.randomUUID();
+    
+    // Calculate expiration time (10 minutes from now)
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+    
+    // Store the nonce in the database
+    const { error } = await supabase
+      .from('wallet_auth_nonces')
+      .insert({
+        nonce,
+        expires_at: expiresAt.toISOString(),
+        used: false
+      });
+    
+    if (error) {
+      console.error("Error storing nonce:", error);
+      throw new Error("Failed to generate authentication challenge");
+    }
+    
+    // Create a message for the user to sign
+    const message = `Sign this message to verify your wallet ownership. Nonce: ${nonce}`;
+    
+    return new Response(
+      JSON.stringify({ 
+        message,
+        nonce
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Error generating nonce:", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Failed to generate nonce" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+}
+
+// Verify the signature against the stored nonce
+async function handleVerifySignature(req, address, signature, nonce) {
+  try {
+    if (!address || !signature || !nonce) {
+      return new Response(
+        JSON.stringify({ error: "Missing required parameters" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Check if the nonce exists and is valid
+    const { data: nonceData, error: nonceError } = await supabase
+      .from('wallet_auth_nonces')
+      .select('*')
+      .eq('nonce', nonce)
+      .eq('used', false)
+      .single();
+    
+    if (nonceError || !nonceData) {
+      console.error("Nonce validation error:", nonceError);
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired nonce" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Check if the nonce has expired
+    if (new Date(nonceData.expires_at) < new Date()) {
+      return new Response(
+        JSON.stringify({ error: "Nonce has expired" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // The message that was signed
+    const message = `Sign this message to verify your wallet ownership. Nonce: ${nonce}`;
+    
+    // Import ethers in Deno
+    const ethers = await import("https://esm.sh/ethers@6.11.1");
+    
+    // Verify the signature
+    let recoveredAddress;
+    try {
+      // Verify signature using ethers
+      recoveredAddress = ethers.verifyMessage(message, signature);
+      
+      // Convert to lowercase for comparison
+      recoveredAddress = recoveredAddress.toLowerCase();
+      address = address.toLowerCase();
+      
+      console.log("Recovered address:", recoveredAddress);
+      console.log("Supplied address:", address);
+      
+      if (recoveredAddress !== address) {
+        throw new Error("Signature verification failed: address mismatch");
+      }
+    } catch (verifyError) {
+      console.error("Signature verification failed:", verifyError);
+      return new Response(
+        JSON.stringify({ error: "Invalid signature" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Mark the nonce as used
+    const { error: updateError } = await supabase
+      .from('wallet_auth_nonces')
+      .update({ used: true })
+      .eq('nonce', nonce);
+    
+    if (updateError) {
+      console.error("Error updating nonce:", updateError);
+      return new Response(
+        JSON.stringify({ error: "Failed to process verification" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Return success response
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        message: "Wallet verification successful",
+        address: recoveredAddress
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Error verifying signature:", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Verification failed" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+}
