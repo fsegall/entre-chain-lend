@@ -4,7 +4,9 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { 
   isWeb3Available, 
-  requestAccounts, 
+  requestAccounts,
+  getCurrentAccount,
+  getCurrentAccounts,
   getCurrentChainId, 
   switchToNetwork, 
   completeWalletConnection,
@@ -76,17 +78,19 @@ export function useWalletConnection() {
     if (!isWeb3Available()) return;
 
     const handleAccountsChanged = async (accounts: string[]) => {
-      console.log("Accounts changed:", accounts);
+      console.log("Accounts changed event fired. New accounts:", accounts);
       
       if (accounts.length === 0) {
         // User disconnected their wallet
+        console.log("No accounts detected, disconnecting wallet");
         setWalletStatus('disconnected');
         setWalletAddress('');
         toast.info("Wallet disconnected");
       } else {
         const newAddress = accounts[0];
-        console.log("New address from accountsChanged:", newAddress);
-        console.log("Current address reference:", addressRef.current);
+        console.log("New address from accountsChanged event:", newAddress);
+        console.log("Current address in state:", walletAddress);
+        console.log("Current address in ref:", addressRef.current);
         
         if (walletStatus === 'connected') {
           // If already connected, handle as an account switch
@@ -109,8 +113,14 @@ export function useWalletConnection() {
           } else {
             console.log("Address received matches current address, no change needed");
           }
+        } else if (walletStatus === 'connecting') {
+          // If currently in connecting state, this is part of the normal flow
+          console.log("Account received during connection process:", newAddress);
+        } else {
+          // If disconnected but account changes, this could be from MetaMask UI
+          console.log("Account changed while disconnected, updating state:", newAddress);
+          setWalletAddress(newAddress);
         }
-        // If not connected yet, the regular connect flow will handle it
       }
     };
 
@@ -120,16 +130,16 @@ export function useWalletConnection() {
     // Also check current accounts on mount to ensure accuracy
     const checkCurrentAccounts = async () => {
       try {
-        if (walletStatus === 'connected') {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-          if (accounts && accounts.length > 0) {
-            const currentAddress = accounts[0];
-            console.log("Current account check:", { currentAddress, storedAddress: walletAddress });
-            
-            if (currentAddress.toLowerCase() !== walletAddress.toLowerCase()) {
-              console.log("Detected address mismatch, updating to:", currentAddress);
-              setWalletAddress(currentAddress);
-            }
+        console.log("Initial account check on mount");
+        const accounts = await getCurrentAccounts();
+        
+        if (accounts && accounts.length > 0) {
+          const currentAccount = accounts[0];
+          console.log("Initial accounts check:", { currentAccount, storedAddress: walletAddress });
+          
+          if (walletStatus === 'connected' && currentAccount.toLowerCase() !== walletAddress.toLowerCase()) {
+            console.log("Initial address mismatch detected, updating to:", currentAccount);
+            setWalletAddress(currentAccount);
           }
         }
       } catch (err) {
@@ -146,32 +156,29 @@ export function useWalletConnection() {
 
   // Expose a method to force address check/refresh
   const refreshWalletAddress = useCallback(async () => {
-    if (!isWeb3Available() || walletStatus !== 'connected') return;
+    if (!isWeb3Available()) return;
     
     try {
-      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-      if (accounts && accounts.length > 0) {
-        const currentAddress = accounts[0];
-        console.log("Refreshing wallet address. Current:", walletAddress, "From wallet:", currentAddress);
+      console.log("Refreshing wallet address. Current in state:", walletAddress);
+      const currentAccount = await getCurrentAccount();
+      
+      if (currentAccount) {
+        console.log("Refresh check - Current in MetaMask:", currentAccount);
         
-        if (currentAddress.toLowerCase() !== walletAddress.toLowerCase()) {
-          console.log("Force updating wallet address to:", currentAddress);
-          setWalletAddress(currentAddress);
+        if (walletStatus === 'connected' && 
+            currentAccount.toLowerCase() !== walletAddress.toLowerCase()) {
+          console.log("Force updating wallet address from:", walletAddress, "to:", currentAccount);
+          setWalletAddress(currentAccount);
         }
+      } else if (walletStatus === 'connected') {
+        // If we're connected but no account is available, we should disconnect
+        console.log("No account found during refresh, disconnecting");
+        disconnectWallet();
       }
     } catch (err) {
       console.error("Error refreshing wallet address:", err);
     }
   }, [walletStatus, walletAddress]);
-
-  // Periodically check for wallet address changes
-  useEffect(() => {
-    if (walletStatus !== 'connected') return;
-    
-    const interval = setInterval(refreshWalletAddress, 2000);
-    
-    return () => clearInterval(interval);
-  }, [walletStatus, refreshWalletAddress]);
 
   const connectWeb3Wallet = async (networkToUse = selectedNetwork) => {
     try {
@@ -182,7 +189,7 @@ export function useWalletConnection() {
         throw new Error("No Web3 wallet detected. Please install MetaMask or another Web3 wallet.");
       }
       
-      // Request account access
+      // Request accounts which will prompt MetaMask to show the account selector
       const accounts = await requestAccounts();
       const address = accounts[0];
       
@@ -252,6 +259,13 @@ export function useWalletConnection() {
   // Function to handle the actual wallet connection after network issues are resolved
   const handleCompleteConnection = async (address: string) => {
     try {
+      // Double-check we're using the current active account from MetaMask
+      const currentAccount = await getCurrentAccount();
+      if (currentAccount && currentAccount.toLowerCase() !== address.toLowerCase()) {
+        console.log(`Address mismatch detected. Switching from ${address} to current MetaMask account ${currentAccount}`);
+        address = currentAccount;
+      }
+      
       const result = await completeWalletConnection(address);
       console.log("Wallet connection complete:", result);
       

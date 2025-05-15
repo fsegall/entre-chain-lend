@@ -48,10 +48,10 @@ const WalletConnect = () => {
       // Refresh wallet address when component mounts
       refreshWalletAddress();
       
-      // Set up periodic refresh
+      // Set up periodic refresh - more frequent to catch address changes quickly
       const refreshInterval = setInterval(() => {
         refreshWalletAddress();
-      }, 3000);
+      }, 1000); // Check every second for address changes
       
       return () => clearInterval(refreshInterval);
     }
@@ -64,6 +64,12 @@ const WalletConnect = () => {
       
       // Show connecting toast
       const toastId = toast.loading("Connecting to wallet...");
+      
+      // Force a check of the current MetaMask account before connecting
+      if (isWeb3Available && window.ethereum) {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        console.log("Current MetaMask accounts before connecting:", accounts);
+      }
       
       await connectWeb3Wallet();
       

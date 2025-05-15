@@ -18,25 +18,12 @@ const ConnectedWallet = ({
   
   // Re-format the address whenever it changes
   useEffect(() => {
-    const updateAddress = () => {
-      if (address) {
-        console.log("ConnectedWallet: Address updated to:", address);
-        const formatted = formatAddress(address);
-        console.log("ConnectedWallet: Formatted as:", formatted);
-        setFormattedAddress(formatted);
-      }
-    };
-    
-    // Call immediately
-    updateAddress();
-    
-    // Set up a small interval to catch MetaMask account changes
-    // This helps ensure UI is in sync with the current wallet state
-    const checkInterval = setInterval(updateAddress, 1000);
-    
-    return () => {
-      clearInterval(checkInterval);
-    };
+    if (address) {
+      console.log("ConnectedWallet: Address updated to:", address);
+      const formatted = formatAddress(address);
+      console.log("ConnectedWallet: Formatted as:", formatted);
+      setFormattedAddress(formatted);
+    }
   }, [address, formatAddress]);
 
   return (

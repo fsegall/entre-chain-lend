@@ -21,18 +21,49 @@ export const isWeb3Available = (): boolean => {
   return typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
 };
 
-// Request user accounts from the wallet
+// Request user accounts from the wallet - force MetaMask to show the account selector
 export const requestAccounts = async (): Promise<string[]> => {
   if (!isWeb3Available()) {
     throw new Error("No Web3 wallet detected. Please install MetaMask or another Web3 wallet.");
   }
   
-  return await window.ethereum.request({ method: 'eth_requestAccounts' });
+  try {
+    // Use eth_requestAccounts which prompts the user and shows their current account
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    console.log("Requested accounts from wallet:", accounts);
+    return accounts;
+  } catch (error) {
+    console.error("Error requesting accounts:", error);
+    throw error;
+  }
+};
+
+// Get the current active accounts without prompting
+export const getCurrentAccounts = async (): Promise<string[]> => {
+  if (!isWeb3Available()) {
+    return [];
+  }
+  
+  try {
+    // Use eth_accounts which returns the currently permitted accounts without a prompt
+    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+    console.log("Current accounts from wallet (no prompt):", accounts);
+    return accounts;
+  } catch (error) {
+    console.error("Error getting current accounts:", error);
+    return [];
+  }
 };
 
 // Get the current chain ID from the wallet
 export const getCurrentChainId = async (): Promise<string> => {
   return await window.ethereum.request({ method: 'eth_chainId' });
+};
+
+// Get the current active account without prompting
+export const getCurrentAccount = async (): Promise<string | null> => {
+  const accounts = await getCurrentAccounts();
+  return accounts.length > 0 ? accounts[0] : null;
 };
 
 // Switch the network in user's wallet
@@ -118,6 +149,14 @@ export const completeWalletConnection = async (address: string): Promise<any> =>
     }
     
     console.log("Received nonce message to sign:", nonceData.message);
+    
+    // Double-check current account matches the address we're trying to connect
+    const currentAccount = await getCurrentAccount();
+    if (currentAccount && currentAccount.toLowerCase() !== address.toLowerCase()) {
+      console.warn(`Address mismatch. Trying to connect to ${address} but current account is ${currentAccount}`);
+      // Use the current account from MetaMask instead
+      address = currentAccount;
+    }
     
     // Ask user to sign the message
     const provider = new ethers.BrowserProvider(window.ethereum);
