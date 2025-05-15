@@ -86,9 +86,9 @@ const Index = () => {
       <div className="bg-amber-50 border-b border-amber-200 px-4 py-4 sticky top-16 z-40">
         <Alert variant="warning" className="border-amber-300 max-w-4xl mx-auto">
           <AlertTriangle className="h-4 w-4 text-amber-700" />
-          <AlertTitle className="text-lg text-amber-800">Web3Auth Provider Issue Fixed</AlertTitle>
+          <AlertTitle className="text-lg text-amber-800">Web3Auth RPC Provider Updated</AlertTitle>
           <AlertDescription className="text-amber-800">
-            <p className="mb-3">The RPC provider has been updated to use the Goerli testnet instead of Mainnet to avoid authentication issues.</p>
+            <p className="mb-3">The RPC provider has been updated to use a public Goerli testnet endpoint instead of Infura to resolve unauthorized access errors.</p>
             <p>You still need to whitelist your domain in the Web3Auth dashboard as explained below.</p>
           </AlertDescription>
         </Alert>

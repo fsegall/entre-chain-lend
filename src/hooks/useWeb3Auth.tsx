@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Web3Auth } from '@web3auth/modal';
 import { CHAIN_NAMESPACES, IProvider } from '@web3auth/base';
@@ -28,14 +29,16 @@ const Web3AuthContext = createContext<Web3AuthContextType | undefined>(undefined
 // Important: Make sure to whitelist your domain in the Web3Auth dashboard
 const WEB3AUTH_CLIENT_ID = 'BNVk83iTB0NVB1d-xwh7Ux1sax3oJSkJOBt6Wft7yrSeBdw9gL3AZUE2Klu76uA5pfhSAB_4E0IwaXZGVnYSqbQ';
 
+// Use a public Goerli RPC endpoint instead of Infura to avoid authentication issues
+const PUBLIC_GOERLI_RPC_URL = 'https://eth-goerli.public.blastapi.io';
+
 const web3AuthOptions = {
   clientId: WEB3AUTH_CLIENT_ID,
   web3AuthNetwork: 'sapphire_devnet',
   chainConfig: {
     chainNamespace: CHAIN_NAMESPACES.EIP155,
-    chainId: '0x5', // Goerli testnet instead of mainnet
-    // Use a public testnet RPC instead of Infura which requires API key
-    rpcTarget: 'https://eth-goerli.public.blastapi.io',
+    chainId: '0x5', // Goerli testnet
+    rpcTarget: PUBLIC_GOERLI_RPC_URL, // Using public RPC endpoint for Goerli
   },
   uiConfig: {
     theme: 'light',
@@ -66,6 +69,7 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("Buffer availability check:", typeof window.Buffer !== 'undefined' ? "Buffer is available" : "Buffer is NOT available");
         console.log("Using Client ID:", WEB3AUTH_CLIENT_ID);
         console.log("Using RPC target:", web3AuthOptions.chainConfig.rpcTarget);
+        console.log("Using Chain ID:", web3AuthOptions.chainConfig.chainId);
         
         // Allow any client ID for development, but show warning
         if (!WEB3AUTH_CLIENT_ID || WEB3AUTH_CLIENT_ID.length < 10) {

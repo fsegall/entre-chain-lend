@@ -128,8 +128,8 @@ const Web3AuthInstructions = () => {
             <p>The application is currently configured to use:</p>
             <ul className="list-disc pl-5 space-y-2 mt-3">
               <li>Network: <code className="bg-gray-200 px-2 py-1 rounded">sapphire_devnet</code></li>
-              <li>Chain: <code className="bg-gray-200 px-2 py-1 rounded">Ethereum Mainnet (0x1)</code></li>
-              <li>RPC Provider: <code className="bg-gray-200 px-2 py-1 rounded">Infura</code></li>
+              <li>Chain: <code className="bg-gray-200 px-2 py-1 rounded">Ethereum Goerli Testnet (0x5)</code></li>
+              <li>RPC Provider: <code className="bg-gray-200 px-2 py-1 rounded">Public Goerli RPC</code></li>
             </ul>
             <p className="mt-3">You can modify these settings in <code className="bg-gray-200 px-2 py-1 rounded">src/hooks/useWeb3Auth.tsx</code> if needed.</p>
           </AccordionContent>
@@ -153,6 +153,21 @@ const Web3AuthInstructions = () => {
                   </li>
                   <li>
                     <p>Make sure your project is configured with the <code className="bg-gray-200 px-2 py-1 rounded">sapphire_devnet</code> network if using the default configuration</p>
+                  </li>
+                </ul>
+              </div>
+              
+              <div>
+                <p className="font-medium text-lg mb-2">If you're experiencing RPC connection errors:</p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>
+                    <p>The application is now using a public Goerli testnet RPC endpoint instead of Infura</p>
+                  </li>
+                  <li>
+                    <p>If you still see RPC errors, check the browser console for more details</p>
+                  </li>
+                  <li>
+                    <p>You may need to provide your own RPC URL if the public endpoint is rate-limited</p>
                   </li>
                 </ul>
               </div>
