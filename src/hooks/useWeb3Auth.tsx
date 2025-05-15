@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Web3Auth } from '@web3auth/modal';
 import { CHAIN_NAMESPACES, IProvider } from '@web3auth/base';
@@ -34,9 +33,9 @@ const web3AuthOptions = {
   web3AuthNetwork: 'sapphire_devnet',
   chainConfig: {
     chainNamespace: CHAIN_NAMESPACES.EIP155,
-    chainId: '0x1', // Ethereum mainnet
-    // Use Infura as RPC provider instead of Ankr which requires API key
-    rpcTarget: 'https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
+    chainId: '0x5', // Goerli testnet instead of mainnet
+    // Use a public testnet RPC instead of Infura which requires API key
+    rpcTarget: 'https://eth-goerli.public.blastapi.io',
   },
   uiConfig: {
     theme: 'light',
@@ -66,6 +65,7 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("Initializing Web3Auth...");
         console.log("Buffer availability check:", typeof window.Buffer !== 'undefined' ? "Buffer is available" : "Buffer is NOT available");
         console.log("Using Client ID:", WEB3AUTH_CLIENT_ID);
+        console.log("Using RPC target:", web3AuthOptions.chainConfig.rpcTarget);
         
         // Allow any client ID for development, but show warning
         if (!WEB3AUTH_CLIENT_ID || WEB3AUTH_CLIENT_ID.length < 10) {
