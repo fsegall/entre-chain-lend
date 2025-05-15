@@ -69,16 +69,33 @@ export function useWalletConnection() {
   useEffect(() => {
     if (!isWeb3Available()) return;
 
-    const handleAccountsChanged = (accounts: string[]) => {
+    const handleAccountsChanged = async (accounts: string[]) => {
+      console.log("Accounts changed:", accounts);
+      
       if (accounts.length === 0) {
         // User disconnected their wallet
         setWalletStatus('disconnected');
         setWalletAddress('');
         toast.info("Wallet disconnected");
-      } else if (walletStatus === 'connected' && accounts[0] !== walletAddress) {
+      } else if (accounts[0] !== walletAddress) {
         // User switched accounts
-        setWalletAddress(accounts[0]);
-        toast.info("Wallet account changed");
+        if (walletStatus === 'connected') {
+          // If already connected, handle as an account switch
+          const newAddress = accounts[0];
+          setWalletAddress(newAddress);
+          toast.info("Wallet account changed, verifying new account...");
+          
+          try {
+            // Verify the new account
+            await handleCompleteConnection(newAddress);
+            toast.success(`Switched to account: ${formatWalletAddress(newAddress)}`);
+          } catch (error: any) {
+            console.error("Failed to verify new wallet account:", error);
+            setError(error.message);
+            toast.error(`Failed to verify new account: ${error.message}`);
+          }
+        }
+        // If not connected yet, the regular connect flow will handle it
       }
     };
 
@@ -180,14 +197,13 @@ export function useWalletConnection() {
       setWalletAddress(address);
       setWalletStatus('connected');
       setPendingConnection(null);
-      toast.success("Wallet connected successfully!");
       
     } catch (error: any) {
       console.error("Failed to complete wallet connection:", error);
       setError(error.message);
       setWalletStatus('disconnected');
       setPendingConnection(null);
-      toast.error(`Failed to connect wallet: ${error.message}`);
+      throw error; // Re-throw to allow handling by the caller
     }
   };
 
