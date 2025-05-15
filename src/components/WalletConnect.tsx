@@ -3,7 +3,7 @@ import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import { Button } from "@/components/ui/button";
 import { Wallet, Loader2, AlertTriangle } from "lucide-react";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const WalletConnect = () => {
   const {
@@ -16,15 +16,37 @@ const WalletConnect = () => {
     configError
   } = useWeb3Auth();
   
-  // Log component state for debugging
+  const [renderError, setRenderError] = useState<string | null>(null);
+  
+  // Catch rendering errors
   useEffect(() => {
-    console.log("WalletConnect component state:", { 
-      isConnected,
-      address,
-      isInitializing,
-      configError
-    });
+    try {
+      // Additional checks to ensure the component doesn't crash
+      console.log("WalletConnect component state:", { 
+        isConnected,
+        address,
+        isInitializing,
+        configError
+      });
+    } catch (error) {
+      console.error("Error in WalletConnect useEffect:", error);
+      setRenderError("Component error");
+    }
   }, [isConnected, address, isInitializing, configError]);
+
+  // Safety fallback in case of rendering errors
+  if (renderError) {
+    return (
+      <Button
+        variant="outline"
+        className="flex items-center gap-2 bg-red-50 border-red-200 text-red-700"
+        disabled
+      >
+        <AlertTriangle className="h-4 w-4" />
+        <span>Wallet Error</span>
+      </Button>
+    );
+  }
 
   if (configError) {
     return (

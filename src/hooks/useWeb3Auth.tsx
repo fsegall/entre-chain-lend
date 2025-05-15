@@ -27,17 +27,6 @@ const Web3AuthContext = createContext<Web3AuthContextType | undefined>(undefined
 // Replace this Client ID with your own from Web3Auth Dashboard
 const WEB3AUTH_CLIENT_ID = 'BNVk83iTB0NVB1d-xwh7Ux1sax3oJSkJOBt6Wft7yrSeBdw9gL3AZUE2Klu76uA5pfhSAB_4E0IwaXZGVnYSqbQ';
 
-// Helper function to validate client ID format
-const isValidClientId = (clientId: string): boolean => {
-  // Check if it's the placeholder text
-  if (clientId === 'YOUR_WEB3AUTH_CLIENT_ID_HERE') {
-    return false;
-  }
-  
-  // Basic validation - ensure it's not empty and has reasonable length
-  return clientId && clientId.length > 20;
-};
-
 const web3AuthOptions = {
   clientId: WEB3AUTH_CLIENT_ID,
   web3AuthNetwork: 'sapphire_devnet',
@@ -63,6 +52,7 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [configError, setConfigError] = useState<string | null>(null);
+  const [initAttempted, setInitAttempted] = useState<boolean>(false);
   const { connectWallet, user } = useAuth();
 
   // Initialize Web3Auth
@@ -71,39 +61,37 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         console.log("Initializing Web3Auth...");
         console.log("Buffer availability check:", typeof window.Buffer !== 'undefined' ? "Buffer is available" : "Buffer is NOT available");
+        console.log("Using Client ID:", WEB3AUTH_CLIENT_ID);
         
-        // Check if the Client ID looks valid
-        if (!WEB3AUTH_CLIENT_ID || WEB3AUTH_CLIENT_ID === 'BNVk83iTB0NVB1d-xwh7Ux1sax3oJSkJOBt6Wft7yrSeBdw9gL3AZUE2Klu76uA5pfhSAB_4E0IwaXZGVnYSqbQ') {
-          const errorMsg = "Invalid Web3Auth Client ID. Please update it in the useWeb3Auth.tsx file.";
-          console.error(errorMsg);
-          setConfigError(errorMsg);
-          setIsInitializing(false);
-          return;
+        // Allow any client ID for development, but show warning
+        if (!WEB3AUTH_CLIENT_ID || WEB3AUTH_CLIENT_ID.length < 10) {
+          console.warn("Warning: Web3Auth Client ID appears to be missing or invalid");
+          setConfigError("Invalid Web3Auth Client ID. Please update it in the useWeb3Auth.tsx file.");
         }
         
-        const privateKeyProvider = new EthereumPrivateKeyProvider({
-          config: { chainConfig: web3AuthOptions.chainConfig },
-        });
-
-        const web3AuthInstance = new Web3Auth({
-          clientId: web3AuthOptions.clientId,
-          web3AuthNetwork: web3AuthOptions.web3AuthNetwork as any,
-          chainConfig: web3AuthOptions.chainConfig,
-          uiConfig: web3AuthOptions.uiConfig as any,
-          privateKeyProvider: privateKeyProvider,
-        });
-
+        // Catch initialization errors but still allow the app to render
         try {
-          // Using a simplified modalConfig that matches the expected type
+          const privateKeyProvider = new EthereumPrivateKeyProvider({
+            config: { chainConfig: web3AuthOptions.chainConfig },
+          });
+
+          const web3AuthInstance = new Web3Auth({
+            clientId: web3AuthOptions.clientId,
+            web3AuthNetwork: web3AuthOptions.web3AuthNetwork as any,
+            chainConfig: web3AuthOptions.chainConfig,
+            uiConfig: web3AuthOptions.uiConfig as any,
+            privateKeyProvider: privateKeyProvider,
+          });
+
+          // Simplified modal config
           await web3AuthInstance.initModal({
             modalConfig: {
               [web3AuthOptions.web3AuthNetwork]: {
                 displayName: "Web3Auth Network",
                 buildEnv: "production",
               }
-            } as any // Use type assertion to bypass the type checking issues
+            } as any
           });
-          
           
           console.log("Web3Auth initialized successfully"); 
           setWeb3Auth(web3AuthInstance);
@@ -111,36 +99,42 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
           // Check if user is already logged in
           if (web3AuthInstance.provider) {
             console.log("Provider already exists, user might be logged in");
-            const ethersProvider = new ethers.BrowserProvider(web3AuthInstance.provider as any);
-            const signer = await ethersProvider.getSigner();
-            const userAddress = await signer.getAddress();
-            
-            console.log("User is logged in with address:", userAddress);
-            setAddress(userAddress);
-            setProvider(web3AuthInstance.provider as any);
-            setIsConnected(true);
-            
-            // Update Supabase profile if user is authenticated
-            if (user) {
-              await connectWallet(userAddress);
+            try {
+              const ethersProvider = new ethers.BrowserProvider(web3AuthInstance.provider as any);
+              const signer = await ethersProvider.getSigner();
+              const userAddress = await signer.getAddress();
+              
+              console.log("User is logged in with address:", userAddress);
+              setAddress(userAddress);
+              setProvider(web3AuthInstance.provider as any);
+              setIsConnected(true);
+              
+              // Update Supabase profile if user is authenticated
+              if (user) {
+                await connectWallet(userAddress);
+              }
+            } catch (signerError) {
+              console.error("Error getting signer:", signerError);
             }
           }
         } catch (modalError: any) {
           console.error("Error initializing Web3Auth modal:", modalError);
           setConfigError(`Web3Auth initialization failed: ${modalError.message}`);
         }
-        
-        setIsInitializing(false);
       } catch (error: any) {
-        console.error("Error initializing Web3Auth:", error);
+        console.error("Error in Web3Auth init:", error);
         setConfigError(`Web3Auth initialization failed: ${error.message}`);
-        toast.error("Failed to initialize wallet connection");
+      } finally {
         setIsInitializing(false);
+        setInitAttempted(true);
       }
     };
 
-    init();
-  }, [connectWallet, user]);
+    // Only initialize once
+    if (!initAttempted) {
+      init();
+    }
+  }, [connectWallet, user, initAttempted]);
 
   // Connect wallet
   const connect = async () => {
@@ -157,17 +151,22 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Get provider and user info after successful authentication
       if (web3authProvider) {
-        const ethersProvider = new ethers.BrowserProvider(web3authProvider as any);
-        const signer = await ethersProvider.getSigner();
-        const userAddress = await signer.getAddress();
-        
-        setAddress(userAddress);
-        setProvider(web3authProvider as any);
-        setIsConnected(true);
-        
-        // Update Supabase profile if user is authenticated
-        if (user) {
-          await connectWallet(userAddress);
+        try {
+          const ethersProvider = new ethers.BrowserProvider(web3authProvider as any);
+          const signer = await ethersProvider.getSigner();
+          const userAddress = await signer.getAddress();
+          
+          setAddress(userAddress);
+          setProvider(web3authProvider as any);
+          setIsConnected(true);
+          
+          // Update Supabase profile if user is authenticated
+          if (user) {
+            await connectWallet(userAddress);
+          }
+        } catch (signerError) {
+          console.error("Error getting signer after connection:", signerError);
+          toast.error("Connected but failed to get address");
         }
       }
       

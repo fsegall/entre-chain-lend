@@ -19,7 +19,7 @@ const Web3AuthInstructions = () => {
         </AlertDescription>
       </Alert>
 
-      <Accordion type="single" collapsible className="w-full">
+      <Accordion type="single" collapsible className="w-full" defaultValue="setup">
         <AccordionItem value="setup">
           <AccordionTrigger>How to setup Web3Auth</AccordionTrigger>
           <AccordionContent>
@@ -62,21 +62,43 @@ const Web3AuthInstructions = () => {
         <AccordionItem value="troubleshooting">
           <AccordionTrigger>Troubleshooting</AccordionTrigger>
           <AccordionContent>
-            <p className="font-medium">If you're still seeing Client ID errors after updating it:</p>
-            <ul className="list-disc pl-5 space-y-2 mt-2">
-              <li>
-                <p>Make sure you've replaced the entire <code className="bg-gray-200 px-1 rounded">YOUR_WEB3AUTH_CLIENT_ID_HERE</code> placeholder string with your actual Client ID</p>
-              </li>
-              <li>
-                <p>Check that there are no extra spaces or characters in the Client ID</p>
-              </li>
-              <li>
-                <p>Verify that your Client ID follows the correct format from Web3Auth</p>
-              </li>
-              <li>
-                <p>Try refreshing the page after saving your changes</p>
-              </li>
-            </ul>
+            <div className="space-y-4">
+              <div>
+                <p className="font-medium">If you're experiencing a blank screen or application errors:</p>
+                <ul className="list-disc pl-5 space-y-2 mt-2">
+                  <li>
+                    <p>Check that the Browser Console for specific error messages</p>
+                  </li>
+                  <li>
+                    <p>Verify that your Web3Auth Client ID is correctly formatted</p>
+                  </li>
+                  <li>
+                    <p>Try clearing your browser cache and local storage</p>
+                  </li>
+                  <li>
+                    <p>If problems persist, try temporarily disabling the Web3Auth component by removing <code className="bg-gray-200 px-1 rounded">{`<Web3AuthProvider>`}</code> from App.tsx</p>
+                  </li>
+                </ul>
+              </div>
+              
+              <div>
+                <p className="font-medium">If you're still seeing Client ID errors after updating it:</p>
+                <ul className="list-disc pl-5 space-y-2 mt-2">
+                  <li>
+                    <p>Make sure you've replaced the entire <code className="bg-gray-200 px-1 rounded">WEB3AUTH_CLIENT_ID</code> placeholder string with your actual Client ID</p>
+                  </li>
+                  <li>
+                    <p>Check that there are no extra spaces or characters in the Client ID</p>
+                  </li>
+                  <li>
+                    <p>Verify that your Client ID follows the correct format from Web3Auth</p>
+                  </li>
+                  <li>
+                    <p>Try refreshing the page after saving your changes</p>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
