@@ -28,7 +28,7 @@ const Web3AuthContext = createContext<Web3AuthContextType | undefined>(undefined
 
 // Web3Auth configuration
 // Replace this Client ID with your own from Web3Auth Dashboard
-const WEB3AUTH_CLIENT_ID = 'BEXt8ZqSKGKUINb_xaUK3GFGjm7CJqWoUjD5zHl8iiztYgXXcK6-pqyIMaIy9QXQ95LJK1wtXBGXlHO4BIWKJO0';
+const WEB3AUTH_CLIENT_ID = 'BNVk83iTB0NVB1d-xwh7Ux1sax3oJSkJOBt6Wft7yrSeBdw9gL3AZUE2Klu76uA5pfhSAB_4E0IwaXZGVnYSqbQ';
 
 const web3AuthOptions = {
   clientId: WEB3AUTH_CLIENT_ID,
