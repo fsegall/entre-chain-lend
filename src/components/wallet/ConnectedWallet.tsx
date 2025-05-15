@@ -16,9 +16,13 @@ const ConnectedWallet = ({
 }: ConnectedWalletProps) => {
   const [formattedAddress, setFormattedAddress] = useState<string>("");
   
+  // Re-format the address whenever it changes
   useEffect(() => {
     if (address) {
-      setFormattedAddress(formatAddress(address));
+      console.log("ConnectedWallet: Address updated to:", address);
+      const formatted = formatAddress(address);
+      console.log("ConnectedWallet: Formatted as:", formatted);
+      setFormattedAddress(formatted);
     }
   }, [address, formatAddress]);
 

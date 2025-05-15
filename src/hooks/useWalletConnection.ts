@@ -77,22 +77,25 @@ export function useWalletConnection() {
         setWalletStatus('disconnected');
         setWalletAddress('');
         toast.info("Wallet disconnected");
-      } else if (accounts[0] !== walletAddress) {
-        // User switched accounts
+      } else {
+        const newAddress = accounts[0];
+        console.log("New address from accountsChanged:", newAddress);
+        
         if (walletStatus === 'connected') {
           // If already connected, handle as an account switch
-          const newAddress = accounts[0];
-          setWalletAddress(newAddress);
-          toast.info("Wallet account changed, verifying new account...");
-          
-          try {
-            // Verify the new account
-            await handleCompleteConnection(newAddress);
-            toast.success(`Switched to account: ${formatWalletAddress(newAddress)}`);
-          } catch (error: any) {
-            console.error("Failed to verify new wallet account:", error);
-            setError(error.message);
-            toast.error(`Failed to verify new account: ${error.message}`);
+          if (newAddress !== walletAddress) {
+            setWalletAddress(newAddress);
+            toast.info("Wallet account changed, verifying new account...");
+            
+            try {
+              // Verify the new account
+              await handleCompleteConnection(newAddress);
+              toast.success(`Switched to account: ${formatWalletAddress(newAddress)}`);
+            } catch (error: any) {
+              console.error("Failed to verify new wallet account:", error);
+              setError(error.message);
+              toast.error(`Failed to verify new account: ${error.message}`);
+            }
           }
         }
         // If not connected yet, the regular connect flow will handle it
