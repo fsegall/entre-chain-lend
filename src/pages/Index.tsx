@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
@@ -82,21 +83,9 @@ const Index = () => {
     <div className="flex flex-col min-h-screen">
       <Navbar />
       
-      {/* Show technical error alert about RPC issues */}
-      <div className="bg-amber-50 border-b border-amber-200 px-4 py-4 sticky top-16 z-40">
-        <Alert variant="warning" className="border-amber-300 max-w-4xl mx-auto">
-          <AlertTriangle className="h-4 w-4 text-amber-700" />
-          <AlertTitle className="text-lg text-amber-800">Web3Auth RPC Provider Updated</AlertTitle>
-          <AlertDescription className="text-amber-800">
-            <p className="mb-3">The RPC provider has been updated to use a public Goerli testnet endpoint instead of Infura to resolve unauthorized access errors.</p>
-            <p>You still need to whitelist your domain in the Web3Auth dashboard as explained below.</p>
-          </AlertDescription>
-        </Alert>
-      </div>
-      
       {/* Show domain error alert prominently at the top if domain error exists */}
       {domainError && (
-        <div className="bg-red-50 border-b border-red-200 px-4 py-4 sticky top-32 z-40">
+        <div className="bg-red-50 border-b border-red-200 px-4 py-4 sticky top-16 z-40">
           <Alert variant="destructive" className="border-red-300 max-w-4xl mx-auto">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="text-lg">Domain Not Whitelisted</AlertTitle>
