@@ -21,22 +21,47 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       retryDelay: 1000,
-      onError: (error) => {
-        console.error("Query error:", error);
-        toast.error("Network error", { 
-          description: "There was a problem connecting to the server" 
-        });
-      },
+      meta: {
+        // Use meta for configuration that can be accessed in onError
+        errorHandler: (error) => {
+          console.error("Query error:", error);
+          toast.error("Network error", { 
+            description: "There was a problem connecting to the server" 
+          });
+        }
+      }
     },
     mutations: {
-      onError: (error) => {
-        console.error("Mutation error:", error);
-        toast.error("Operation failed", { 
-          description: "There was a problem processing your request" 
-        });
-      },
+      meta: {
+        errorHandler: (error) => {
+          console.error("Mutation error:", error);
+          toast.error("Operation failed", { 
+            description: "There was a problem processing your request" 
+          });
+        }
+      }
     },
   },
+});
+
+// Add global error handler for queries
+queryClient.setDefaultOptions({
+  queries: {
+    onError: (error) => {
+      const handler = queryClient.getDefaultOptions()?.queries?.meta?.errorHandler;
+      if (handler && typeof handler === 'function') {
+        handler(error);
+      }
+    }
+  },
+  mutations: {
+    onError: (error) => {
+      const handler = queryClient.getDefaultOptions()?.mutations?.meta?.errorHandler;
+      if (handler && typeof handler === 'function') {
+        handler(error);
+      }
+    }
+  }
 });
 
 const App = () => {
