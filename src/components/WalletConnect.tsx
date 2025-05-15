@@ -53,12 +53,12 @@ const WalletConnect = () => {
       
       console.log("Connected to wallet address:", address);
       
-      // Check if we're connected to Sepolia testnet (chainId 11155111)
+      // Check if we're connected to Ephemery testnet (chainId 0x53a)
       const chainId = await window.ethereum.request({ method: 'eth_chainId' });
       console.log("Current chain ID:", chainId);
       
-      // Sepolia testnet chainId is 0xaa36a7 in hex (11155111 in decimal)
-      if (chainId !== '0xaa36a7') {
+      // Ephemery testnet chainId is 0x53a in hex (1338 in decimal)
+      if (chainId !== '0x53a') {
         // Instead of automatically switching, save the pending connection and show dialog
         setPendingConnection({
           address,
@@ -90,7 +90,7 @@ const WalletConnect = () => {
       try {
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0xaa36a7' }], // Sepolia testnet chainId in hex
+          params: [{ chainId: '0x53a' }], // Ephemery testnet chainId in hex
         });
       } catch (switchError: any) {
         // This error code indicates that the chain has not been added to MetaMask
@@ -99,15 +99,15 @@ const WalletConnect = () => {
             method: 'wallet_addEthereumChain',
             params: [
               {
-                chainId: '0xaa36a7',
-                chainName: 'Sepolia Testnet',
+                chainId: '0x53a',
+                chainName: 'Ephemery Testnet',
                 nativeCurrency: {
-                  name: 'Sepolia ETH',
-                  symbol: 'SepoliaETH',
+                  name: 'Ephemery ETH',
+                  symbol: 'ETH',
                   decimals: 18,
                 },
-                rpcUrls: ['https://sepolia.infura.io/v3/'],
-                blockExplorerUrls: ['https://sepolia.etherscan.io'],
+                rpcUrls: ['https://ephemery.dev/'],
+                blockExplorerUrls: ['https://explorer.ephemery.dev/'],
               },
             ],
           });
@@ -132,7 +132,7 @@ const WalletConnect = () => {
     setShowNetworkDialog(false);
     setPendingConnection(null);
     setWalletStatus('disconnected');
-    toast.info("Connection cancelled. Sepolia network is required for this application.");
+    toast.info("Connection cancelled. Ephemery network is required for this application.");
   };
 
   // Function to handle the actual wallet connection after network issues are resolved
@@ -272,13 +272,13 @@ const WalletConnect = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Network Switch Required</AlertDialogTitle>
             <AlertDialogDescription>
-              This application requires the Sepolia test network. 
-              Would you like to switch your wallet to the Sepolia network now?
+              This application requires the Ephemery test network. 
+              Would you like to switch your wallet to the Ephemery network now?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleCancelNetworkSwitch}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSwitchNetwork}>Switch to Sepolia</AlertDialogAction>
+            <AlertDialogAction onClick={handleSwitchNetwork}>Switch to Ephemery</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
