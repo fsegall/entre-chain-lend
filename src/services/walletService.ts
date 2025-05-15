@@ -60,6 +60,27 @@ export const getCurrentChainId = async (): Promise<string> => {
   return await window.ethereum.request({ method: 'eth_chainId' });
 };
 
+// Setup account change listeners - use this to register external callbacks
+export const setupAccountChangeListeners = (callback: (accounts: string[]) => void): () => void => {
+  if (!isWeb3Available()) {
+    console.warn("Cannot setup account listeners - Web3 not available");
+    return () => {};
+  }
+
+  const handleAccountsChanged = (accounts: string[]) => {
+    console.log("Account change detected in service:", accounts);
+    callback(accounts);
+  };
+
+  // Add the listener
+  window.ethereum.on('accountsChanged', handleAccountsChanged);
+  
+  // Return a cleanup function
+  return () => {
+    window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+  };
+};
+
 // Get the current active account without prompting
 export const getCurrentAccount = async (): Promise<string | null> => {
   const accounts = await getCurrentAccounts();

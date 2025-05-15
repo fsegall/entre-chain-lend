@@ -21,6 +21,7 @@ const WalletConnect = () => {
     selectedNetwork,
     setSelectedNetwork,
     refreshWalletAddress,
+    detectAccountChanges,
     error
   } = useWalletConnection();
   
@@ -42,16 +43,23 @@ const WalletConnect = () => {
     });
   }, [walletStatus, walletAddress, isWeb3Available, showNetworkDialog]);
 
+  // Initialize account change detection
+  useEffect(() => {
+    // Set up MetaMask account change detection
+    const cleanup = detectAccountChanges();
+    return cleanup;
+  }, [detectAccountChanges]);
+
   // Ensure wallet address is always up to date
   useEffect(() => {
     if (walletStatus === 'connected') {
       // Refresh wallet address when component mounts
       refreshWalletAddress();
       
-      // Set up periodic refresh - more frequent to catch address changes quickly
+      // Set up periodic refresh - less frequent since we have the event listener now
       const refreshInterval = setInterval(() => {
         refreshWalletAddress();
-      }, 1000); // Check every second for address changes
+      }, 3000); // Check every 3 seconds as a backup
       
       return () => clearInterval(refreshInterval);
     }

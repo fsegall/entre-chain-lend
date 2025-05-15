@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,7 +9,8 @@ import {
   getCurrentChainId, 
   switchToNetwork, 
   completeWalletConnection,
-  formatWalletAddress
+  formatWalletAddress,
+  setupAccountChangeListeners
 } from "@/services/walletService";
 import { 
   DEFAULT_NETWORK,
@@ -73,12 +73,15 @@ export function useWalletConnection() {
     };
   }, [walletStatus]);
 
-  // Listen for account changes
-  useEffect(() => {
-    if (!isWeb3Available()) return;
-
-    const handleAccountsChanged = async (accounts: string[]) => {
-      console.log("Accounts changed event fired. New accounts:", accounts);
+  // Set up account change detection function
+  const detectAccountChanges = useCallback(() => {
+    if (!isWeb3Available()) return () => {};
+    
+    console.log("Setting up MetaMask account change detection");
+    
+    // Use the service function to set up listeners
+    return setupAccountChangeListeners(async (accounts) => {
+      console.log("Account change detected in hook. New accounts:", accounts);
       
       if (accounts.length === 0) {
         // User disconnected their wallet
@@ -89,15 +92,14 @@ export function useWalletConnection() {
       } else {
         const newAddress = accounts[0];
         console.log("New address from accountsChanged event:", newAddress);
-        console.log("Current address in state:", walletAddress);
-        console.log("Current address in ref:", addressRef.current);
         
         if (walletStatus === 'connected') {
-          // If already connected, handle as an account switch
+          // If already connected, handle account switch
           if (newAddress.toLowerCase() !== addressRef.current.toLowerCase()) {
-            console.log("Detected account switch to:", newAddress);
+            console.log("Account switch confirmed:", newAddress);
+            console.log(`Previous: ${addressRef.current}, New: ${newAddress}`);
             
-            // Update the address FIRST - this ensures UI updates immediately
+            // Update the address immediately for UI responsiveness
             setWalletAddress(newAddress);
             toast.info("Wallet account changed, verifying new account...");
             
@@ -110,49 +112,11 @@ export function useWalletConnection() {
               setError(error.message);
               toast.error(`Failed to verify new account: ${error.message}`);
             }
-          } else {
-            console.log("Address received matches current address, no change needed");
-          }
-        } else if (walletStatus === 'connecting') {
-          // If currently in connecting state, this is part of the normal flow
-          console.log("Account received during connection process:", newAddress);
-        } else {
-          // If disconnected but account changes, this could be from MetaMask UI
-          console.log("Account changed while disconnected, updating state:", newAddress);
-          setWalletAddress(newAddress);
-        }
-      }
-    };
-
-    // Add event listener
-    window.ethereum.on('accountsChanged', handleAccountsChanged);
-    
-    // Also check current accounts on mount to ensure accuracy
-    const checkCurrentAccounts = async () => {
-      try {
-        console.log("Initial account check on mount");
-        const accounts = await getCurrentAccounts();
-        
-        if (accounts && accounts.length > 0) {
-          const currentAccount = accounts[0];
-          console.log("Initial accounts check:", { currentAccount, storedAddress: walletAddress });
-          
-          if (walletStatus === 'connected' && currentAccount.toLowerCase() !== walletAddress.toLowerCase()) {
-            console.log("Initial address mismatch detected, updating to:", currentAccount);
-            setWalletAddress(currentAccount);
           }
         }
-      } catch (err) {
-        console.error("Error checking current accounts:", err);
       }
-    };
-    
-    checkCurrentAccounts();
-    
-    return () => {
-      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-    };
-  }, [walletStatus, walletAddress]);
+    });
+  }, [walletStatus]);
 
   // Expose a method to force address check/refresh
   const refreshWalletAddress = useCallback(async () => {
@@ -308,6 +272,7 @@ export function useWalletConnection() {
     formatWalletAddress,
     setSelectedNetwork,
     selectedNetwork,
-    refreshWalletAddress
+    refreshWalletAddress,
+    detectAccountChanges
   };
 }
