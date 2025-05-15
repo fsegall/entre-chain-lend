@@ -15,53 +15,14 @@ import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 import { toast } from "@/hooks/use-toast";
 
-// Configure the query client with better error handling
+// Configure the query client with simple configuration
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      retryDelay: 1000,
-      meta: {
-        errorHandler: (error: any) => {
-          console.error("Query error:", error);
-          toast.error("Network error", { 
-            description: "There was a problem connecting to the server" 
-          });
-        }
-      }
-    },
-    mutations: {
-      meta: {
-        errorHandler: (error: any) => {
-          console.error("Mutation error:", error);
-          toast.error("Operation failed", { 
-            description: "There was a problem processing your request" 
-          });
-        }
-      }
-    },
+      retryDelay: 1000
+    }
   },
-});
-
-// Add proper error handlers for the query client - with support for latest React Query
-queryClient.setQueryDefaults([],{
-  onError: (error) => {
-    const meta = queryClient.getQueryDefaults([])?.meta;
-    const handler = meta?.errorHandler;
-    if (handler && typeof handler === 'function') {
-      handler(error);
-    }
-  }
-});
-
-queryClient.setMutationDefaults([],{
-  onError: (error) => {
-    const meta = queryClient.getMutationDefaults([])?.meta;
-    const handler = meta?.errorHandler;
-    if (handler && typeof handler === 'function') {
-      handler(error);
-    }
-  }
 });
 
 const App = () => {
