@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { 
@@ -84,6 +84,7 @@ export function useWalletConnection() {
         if (walletStatus === 'connected') {
           // If already connected, handle as an account switch
           if (newAddress !== walletAddress) {
+            // IMPORTANT: Update the address BEFORE verification
             setWalletAddress(newAddress);
             toast.info("Wallet account changed, verifying new account...");
             
