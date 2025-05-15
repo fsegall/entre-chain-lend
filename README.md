@@ -1,4 +1,51 @@
-# Welcome to your Lovable project
+# Entre-Chain Lend
+
+A decentralized lending platform built with React, TypeScript, and Supabase.
+
+## Project Structure
+
+The project is organized into two main directories:
+
+### Frontend (`/frontend`)
+Contains the React/Vite application. See [frontend/README.md](frontend/README.md) for detailed setup instructions.
+
+### Supabase (`/supabase`)
+Contains all Supabase-related configurations:
+- Database migrations
+- Edge Functions
+- Database policies and triggers
+- Type definitions
+
+## Getting Started
+
+1. Clone the repository
+2. Set up the frontend:
+   ```bash
+   cd frontend
+   npm install
+   # Create .env file with required variables
+   npm run dev
+   ```
+3. Set up Supabase:
+   - Create a new Supabase project
+   - Run the migrations in the `supabase/migrations` directory
+   - Configure environment variables in the frontend
+
+## Development
+
+- Frontend development: See [frontend/README.md](frontend/README.md)
+- Database changes: Add new migrations in `supabase/migrations`
+- Edge Functions: Add new functions in `supabase/functions`
+
+## Contributing
+
+1. Create a new branch for your feature
+2. Make your changes
+3. Submit a pull request
+
+## License
+
+MIT
 
 ## Project info
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -106,7 +105,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Update state
       setSession(result.session);
       setUser(result.user);
-      toast.success("Signed in successfully!");
       
       // Refresh user profile to get roles and additional data
       setTimeout(() => {

@@ -38,46 +38,64 @@ const AuthCallback = () => {
         if (session) {
           // Successfully authenticated
           console.log("Authentication successful, refreshing user profile");
-          toast.success("Successfully signed in!");
           
           // For new sign-ups or oauth logins, ensure they are marked as needing role selection
           if (session.user) {
             console.log("Updating profile for user:", session.user.id);
             
-            // Always update the profile for new social logins to ensure role selection is shown
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .upsert({ 
-                id: session.user.id,
-                is_onboarded: false,  // Set to false to ensure role selection appears
-                role_selection: null,  // Clear any existing role to force selection
-                full_name: session.user.user_metadata?.full_name,
-                avatar_url: session.user.user_metadata?.avatar_url
-              });
-            
-            if (profileError) {
-              console.error("Failed to update onboarding status:", profileError);
-            } else {
-              console.log("User marked as needing role selection");
-            }
-            
-            // Also ensure they have the visitor role
-            const { error: roleError } = await supabase
-              .from('user_roles')
-              .upsert({ 
-                user_id: session.user.id,
-                role: 'visitor'
-              });
+            try {
+              // Always update the profile for new social logins to ensure role selection is shown
+              const { error: profileError } = await supabase
+                .from('profiles')
+                .upsert({ 
+                  id: session.user.id,
+                  is_onboarded: false,  // Set to false to ensure role selection appears
+                  role_selection: null,  // Clear any existing role to force selection
+                  full_name: session.user.user_metadata?.full_name,
+                  avatar_url: session.user.user_metadata?.avatar_url
+                });
               
-            if (roleError) {
-              console.error("Failed to set visitor role:", roleError);
-            } else {
-              console.log("Visitor role added or confirmed");
+              if (profileError) {
+                console.error("Failed to update onboarding status:", profileError);
+              } else {
+                console.log("User marked as needing role selection");
+              }
+              
+              // Check if visitor role exists
+              const { data: existingRole } = await supabase
+                .from('user_roles')
+                .select('*')
+                .eq('user_id', session.user.id)
+                .eq('role', 'visitor')
+                .single();
+              
+              if (!existingRole) {
+                // Only insert if the role doesn't exist
+                const { error: roleError } = await supabase
+                  .from('user_roles')
+                  .insert({ 
+                    user_id: session.user.id,
+                    role: 'visitor'
+                  });
+                  
+                if (roleError) {
+                  console.error("Failed to set visitor role:", roleError);
+                } else {
+                  console.log("Visitor role added");
+                }
+              } else {
+                console.log("Visitor role already exists");
+              }
+            } catch (error) {
+              console.error("Error updating user data:", error);
             }
           }
           
           // Refresh user profile to get updated roles and other data
           await refreshUserProfile();
+          
+          // Show success toast
+          toast.success("Successfully signed in!");
           
           // Add a small delay to ensure toast is shown before navigation
           setTimeout(() => {
@@ -114,37 +132,23 @@ const AuthCallback = () => {
     handleAuthCallback();
   }, [navigate, refreshUserProfile]);
 
-  return (
-    <div className="h-screen w-screen flex items-center justify-center bg-gray-50">
-      <div className="flex flex-col items-center gap-4 max-w-md w-full p-8 bg-white rounded-lg shadow-md">
-        {error ? (
-          <>
-            <div className="text-red-500 text-xl">Authentication Error</div>
-            <p className="text-center text-gray-700">{error}</p>
-            <p className="text-center text-gray-500 text-sm">Redirecting you to the login page...</p>
-          </>
-        ) : (
-          <>
-            {isProcessing ? (
-              <>
-                <Loader2 className="h-16 w-16 animate-spin text-blockloan-blue" />
-                <h2 className="text-2xl font-semibold text-blockloan-blue">
-                  Completing authentication...
-                </h2>
-                <p className="text-center text-gray-500">
-                  Please wait while we securely sign you in.
-                </p>
-              </>
-            ) : (
-              <p className="text-center text-green-500 text-xl">
-                Authentication complete! Redirecting...
-              </p>
-            )}
-          </>
-        )}
+  if (isProcessing) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-blockloan-blue" />
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-red-500">{error}</div>
+      </div>
+    );
+  }
+
+  return null;
 };
 
 export default AuthCallback;
