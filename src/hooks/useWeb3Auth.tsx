@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Web3AuthModalPack, Web3AuthConfig } from '@web3auth/modal';
+import { Web3Auth } from '@web3auth/modal';
 import { CHAIN_NAMESPACES, IProvider } from '@web3auth/base';
 import { EthereumPrivateKeyProvider } from '@web3auth/ethereum-provider';
 import { ethers } from 'ethers';
@@ -9,7 +9,7 @@ import { useAuth } from './useAuth';
 
 // Define the Web3Auth context type
 interface Web3AuthContextType {
-  web3AuthPack: Web3AuthModalPack | null;
+  web3Auth: Web3Auth | null;
   provider: IProvider | null;
   address: string;
   isConnected: boolean;
@@ -23,7 +23,7 @@ interface Web3AuthContextType {
 const Web3AuthContext = createContext<Web3AuthContextType | undefined>(undefined);
 
 // Web3Auth configuration
-const web3AuthConfig: Web3AuthConfig = {
+const web3AuthOptions = {
   clientId: 'BEXt8ZqSKGKUINb_xaUK3GFGjm7CJqWoUjD5zHl8iiztYgXXcK6-pqyIMaIy9QXQ95LJK1wtXBGXlHO4BIWKJO0', // Public Auth0 client ID
   web3AuthNetwork: 'sapphire_devnet',
   chainConfig: {
@@ -42,7 +42,7 @@ const web3AuthConfig: Web3AuthConfig = {
 };
 
 export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [web3AuthPack, setWeb3AuthPack] = useState<Web3AuthModalPack | null>(null);
+  const [web3Auth, setWeb3Auth] = useState<Web3Auth | null>(null);
   const [provider, setProvider] = useState<IProvider | null>(null);
   const [address, setAddress] = useState<string>('');
   const [isConnected, setIsConnected] = useState<boolean>(false);
@@ -54,25 +54,28 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
     const init = async () => {
       try {
         const privateKeyProvider = new EthereumPrivateKeyProvider({
-          config: { chainConfig: web3AuthConfig.chainConfig },
+          config: { chainConfig: web3AuthOptions.chainConfig },
         });
 
-        const web3AuthModalPack = new Web3AuthModalPack({
-          web3AuthConfig,
-          privateKeyProvider,
+        const web3AuthInstance = new Web3Auth({
+          clientId: web3AuthOptions.clientId,
+          web3AuthNetwork: web3AuthOptions.web3AuthNetwork,
+          chainConfig: web3AuthOptions.chainConfig,
+          uiConfig: web3AuthOptions.uiConfig,
+          privateKeyProvider: privateKeyProvider,
         });
 
-        await web3AuthModalPack.init();
-        setWeb3AuthPack(web3AuthModalPack);
+        await web3AuthInstance.initModal();
+        setWeb3Auth(web3AuthInstance);
 
         // Check if user is already logged in
-        if (web3AuthModalPack.provider) {
-          const ethersProvider = new ethers.BrowserProvider(web3AuthModalPack.provider as any);
+        if (web3AuthInstance.provider) {
+          const ethersProvider = new ethers.BrowserProvider(web3AuthInstance.provider as any);
           const signer = await ethersProvider.getSigner();
           const userAddress = await signer.getAddress();
           
           setAddress(userAddress);
-          setProvider(web3AuthModalPack.provider);
+          setProvider(web3AuthInstance.provider);
           setIsConnected(true);
           
           // Update Supabase profile if user is authenticated
@@ -94,7 +97,7 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Connect wallet
   const connect = async () => {
-    if (!web3AuthPack) {
+    if (!web3Auth) {
       toast.error("Web3Auth not initialized");
       return;
     }
@@ -103,20 +106,22 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
       toast.loading("Connecting to wallet...");
       
       // Open the Web3Auth modal for authentication
-      await web3AuthPack.connectToWallet();
+      const provider = await web3Auth.connect();
       
       // Get provider and user info after successful authentication
-      const ethersProvider = new ethers.BrowserProvider(web3AuthPack.provider as any);
-      const signer = await ethersProvider.getSigner();
-      const userAddress = await signer.getAddress();
-      
-      setAddress(userAddress);
-      setProvider(web3AuthPack.provider);
-      setIsConnected(true);
-      
-      // Update Supabase profile if user is authenticated
-      if (user) {
-        await connectWallet(userAddress);
+      if (provider) {
+        const ethersProvider = new ethers.BrowserProvider(provider as any);
+        const signer = await ethersProvider.getSigner();
+        const userAddress = await signer.getAddress();
+        
+        setAddress(userAddress);
+        setProvider(provider);
+        setIsConnected(true);
+        
+        // Update Supabase profile if user is authenticated
+        if (user) {
+          await connectWallet(userAddress);
+        }
       }
       
       toast.dismiss();
@@ -130,12 +135,12 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Disconnect wallet
   const disconnect = async () => {
-    if (!web3AuthPack) {
+    if (!web3Auth) {
       return;
     }
 
     try {
-      await web3AuthPack.disconnectWallet();
+      await web3Auth.logout();
       setProvider(null);
       setAddress('');
       setIsConnected(false);
@@ -155,7 +160,7 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
   return (
     <Web3AuthContext.Provider
       value={{
-        web3AuthPack,
+        web3Auth,
         provider,
         address,
         isConnected,
