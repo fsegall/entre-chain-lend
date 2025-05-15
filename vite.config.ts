@@ -30,5 +30,14 @@ export default defineConfig(({ mode }) => ({
       'version': '',
       'nextTick': (cb: any) => setTimeout(cb, 0),
     },
+    // Add Buffer polyfill
+    'Buffer': ['buffer', 'Buffer'],
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
   },
 }));

@@ -67,11 +67,12 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
           privateKeyProvider: privateKeyProvider,
         });
 
+        // Fix the ModalConfig type issue by using a properly typed configuration
         await web3AuthInstance.initModal({
           modalConfig: {
             [web3AuthOptions.web3AuthNetwork]: {
-              displayName: "Web3Auth Network",
-              buildEnv: "production",
+              name: "Web3Auth Network",
+              showOnModal: true,
             }
           }
         });
