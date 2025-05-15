@@ -7,9 +7,6 @@ import { ethers } from 'ethers';
 import { toast } from 'sonner';
 import { useAuth } from './useAuth';
 
-// The Buffer polyfill is now imported globally from main.tsx
-// No need to import it here again
-
 // Define the Web3Auth context type
 interface Web3AuthContextType {
   web3Auth: Web3Auth | null;
@@ -29,6 +26,17 @@ const Web3AuthContext = createContext<Web3AuthContextType | undefined>(undefined
 // Web3Auth configuration
 // Replace this Client ID with your own from Web3Auth Dashboard
 const WEB3AUTH_CLIENT_ID = 'YOUR_WEB3AUTH_CLIENT_ID_HERE';
+
+// Helper function to validate client ID format
+const isValidClientId = (clientId: string): boolean => {
+  // Check if it's the placeholder text
+  if (clientId === 'YOUR_WEB3AUTH_CLIENT_ID_HERE') {
+    return false;
+  }
+  
+  // Basic validation - ensure it's not empty and has reasonable length
+  return clientId && clientId.length > 20;
+};
 
 const web3AuthOptions = {
   clientId: WEB3AUTH_CLIENT_ID,
@@ -63,10 +71,9 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         console.log("Initializing Web3Auth...");
         console.log("Buffer availability check:", typeof window.Buffer !== 'undefined' ? "Buffer is available" : "Buffer is NOT available");
-        console.log("Buffer.from availability check:", typeof window.Buffer?.from === 'function' ? "Buffer.from is available" : "Buffer.from is NOT available");
         
         // Check if the Client ID looks valid
-        if (!WEB3AUTH_CLIENT_ID || WEB3AUTH_CLIENT_ID === 'YOUR_WEB3AUTH_CLIENT_ID_HERE') {
+        if (!isValidClientId(WEB3AUTH_CLIENT_ID)) {
           const errorMsg = "Invalid Web3Auth Client ID. Please update it in the useWeb3Auth.tsx file.";
           console.error(errorMsg);
           setConfigError(errorMsg);
