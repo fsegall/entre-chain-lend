@@ -1,6 +1,7 @@
 
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 
 interface ConnectedWalletProps {
   address: string;
@@ -13,6 +14,14 @@ const ConnectedWallet = ({
   formatAddress, 
   onDisconnect 
 }: ConnectedWalletProps) => {
+  const [formattedAddress, setFormattedAddress] = useState<string>("");
+  
+  useEffect(() => {
+    if (address) {
+      setFormattedAddress(formatAddress(address));
+    }
+  }, [address, formatAddress]);
+
   return (
     <TooltipProvider>
       <Tooltip>
@@ -25,7 +34,7 @@ const ConnectedWallet = ({
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse-slow"></div>
               <span className="font-mono text-xs md:text-sm">
-                {formatAddress(address)}
+                {formattedAddress || formatAddress(address)}
               </span>
             </div>
           </Button>
