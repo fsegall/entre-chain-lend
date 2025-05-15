@@ -49,8 +49,10 @@ const Web3AuthInstructions = () => {
                   <p>Save your changes and refresh this page</p>
                 </li>
               </ol>
-              <div className="mt-4 p-3 border border-blue-200 bg-blue-50 rounded text-blue-800">
-                <p className="text-sm"><strong>Note:</strong> If you're using the sample Client ID, you'll need to create your own project and use that Client ID instead. The sample Client ID is restricted to specific domains.</p>
+              <div className="mt-4 p-3 border border-red-200 bg-red-50 rounded text-red-800">
+                <p className="text-sm font-bold">Current Error: Domain not whitelisted</p>
+                <p className="text-sm mt-2">The error you're seeing is because your current domain ({window.location.origin}) is not whitelisted in the Web3Auth project settings.</p>
+                <p className="text-sm mt-2">Either create your own Web3Auth project and replace the Client ID or add this domain to your existing project's whitelist.</p>
               </div>
             </AccordionContent>
           </AccordionItem>
@@ -122,7 +124,7 @@ const Web3AuthInstructions = () => {
                 <p className="font-medium">If you're experiencing a blank screen or application errors:</p>
                 <ul className="list-disc pl-5 space-y-2 mt-2">
                   <li>
-                    <p>Check that the Browser Console for specific error messages</p>
+                    <p>Check the Browser Console for specific error messages</p>
                   </li>
                   <li>
                     <p>Verify that your Web3Auth Client ID is correctly formatted</p>

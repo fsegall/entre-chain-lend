@@ -69,9 +69,12 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!WEB3AUTH_CLIENT_ID || WEB3AUTH_CLIENT_ID.length < 10) {
           console.warn("Warning: Web3Auth Client ID appears to be missing or invalid");
           setConfigError("Invalid Web3Auth Client ID. Please update it in the useWeb3Auth.tsx file.");
+          setIsInitializing(false);
+          setInitAttempted(true);
+          return;
         }
         
-        // Catch initialization errors but still allow the app to render
+        // Safely initialize Web3Auth - wrap each step in try/catch to prevent crashes
         try {
           const privateKeyProvider = new EthereumPrivateKeyProvider({
             config: { chainConfig: web3AuthOptions.chainConfig },
@@ -84,59 +87,71 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
             uiConfig: web3AuthOptions.uiConfig as any,
             privateKeyProvider: privateKeyProvider,
           });
-
-          // Simplified modal config
-          await web3AuthInstance.initModal({
-            modalConfig: {
-              [web3AuthOptions.web3AuthNetwork]: {
-                displayName: "Web3Auth Network",
-                buildEnv: "production",
-              }
-            } as any
-          });
           
-          console.log("Web3Auth initialized successfully"); 
-          setWeb3Auth(web3AuthInstance);
+          console.log("Web3Auth instance created");
 
-          // Check if user is already logged in
-          if (web3AuthInstance.provider) {
-            console.log("Provider already exists, user might be logged in");
-            try {
-              const ethersProvider = new ethers.BrowserProvider(web3AuthInstance.provider as any);
-              const signer = await ethersProvider.getSigner();
-              const userAddress = await signer.getAddress();
-              
-              console.log("User is logged in with address:", userAddress);
-              setAddress(userAddress);
-              setProvider(web3AuthInstance.provider as any);
-              setIsConnected(true);
-              
-              // Update Supabase profile if user is authenticated
-              if (user) {
-                await connectWallet(userAddress);
+          // Try to initialize the modal
+          try {
+            console.log("Initializing Web3Auth modal...");
+            await web3AuthInstance.initModal({
+              modalConfig: {
+                [web3AuthOptions.web3AuthNetwork]: {
+                  displayName: "Web3Auth Network",
+                  buildEnv: "production",
+                }
+              } as any
+            });
+            
+            console.log("Web3Auth initialized successfully"); 
+            setWeb3Auth(web3AuthInstance);
+
+            // Check if user is already logged in
+            if (web3AuthInstance.provider) {
+              console.log("Provider already exists, user might be logged in");
+              try {
+                const ethersProvider = new ethers.BrowserProvider(web3AuthInstance.provider as any);
+                const signer = await ethersProvider.getSigner();
+                const userAddress = await signer.getAddress();
+                
+                console.log("User is logged in with address:", userAddress);
+                setAddress(userAddress);
+                setProvider(web3AuthInstance.provider as any);
+                setIsConnected(true);
+                
+                // Update Supabase profile if user is authenticated
+                if (user) {
+                  await connectWallet(userAddress);
+                }
+              } catch (signerError) {
+                console.error("Error getting signer:", signerError);
               }
-            } catch (signerError) {
-              console.error("Error getting signer:", signerError);
+            }
+          } catch (modalError: any) {
+            console.error("Error initializing Web3Auth modal:", modalError);
+            
+            // Check if the error is about domain validation
+            if (modalError.message && 
+                (modalError.message.includes("could not validate redirect") || 
+                 modalError.message.includes("whitelist your domain"))) {
+              console.error("Domain whitelist error detected:", modalError.message);
+              setDomainError(true);
+              setConfigError(`Domain not whitelisted: ${window.location.origin}. Add this domain to your Web3Auth dashboard.`);
+              
+              // Allow the application to continue loading despite the error
+              console.log("Continuing app load despite domain error");
+            } else {
+              setConfigError(`Web3Auth initialization failed: ${modalError.message}`);
             }
           }
-        } catch (modalError: any) {
-          console.error("Error initializing Web3Auth modal:", modalError);
-          
-          // Check if the error is about domain validation
-          if (modalError.message && 
-              (modalError.message.includes("could not validate redirect") || 
-               modalError.message.includes("whitelist your domain"))) {
-            console.error("Domain whitelist error detected:", modalError.message);
-            setDomainError(true);
-            setConfigError("Domain not whitelisted. You need to add this domain to your Web3Auth dashboard.");
-          } else {
-            setConfigError(`Web3Auth initialization failed: ${modalError.message}`);
-          }
+        } catch (initError: any) {
+          console.error("Error creating Web3Auth instance:", initError);
+          setConfigError(`Error creating Web3Auth instance: ${initError.message}`);
         }
       } catch (error: any) {
-        console.error("Error in Web3Auth init:", error);
+        console.error("General error in Web3Auth init:", error);
         setConfigError(`Web3Auth initialization failed: ${error.message}`);
       } finally {
+        // Always mark initialization as complete to prevent loading spinner from showing forever
         setIsInitializing(false);
         setInitAttempted(true);
       }
@@ -188,6 +203,14 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error connecting to wallet:", error);
       toast.dismiss();
       toast.error(error.message || "Failed to connect wallet");
+      
+      // Check for domain errors during connect attempt
+      if (error.message && 
+          (error.message.includes("could not validate redirect") || 
+           error.message.includes("whitelist your domain"))) {
+        setDomainError(true);
+        setConfigError(`Domain not whitelisted: ${window.location.origin}. Add this domain to your Web3Auth dashboard.`);
+      }
     }
   };
 

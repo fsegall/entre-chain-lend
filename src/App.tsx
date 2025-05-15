@@ -34,15 +34,23 @@ const App = () => {
     const handleError = (event: ErrorEvent) => {
       console.error("Global error caught:", event.error);
       
-      // Filter out Web3Auth domain errors to prevent app from crashing
-      const errorMessage = event.error?.message || "An unknown error occurred";
-      if (errorMessage.includes("could not validate redirect") || 
-          errorMessage.includes("whitelist your domain")) {
-        console.log("Web3Auth domain error detected, allowing app to continue loading");
-        // Don't set app error for this specific case, as we'll handle it in the Web3Auth component
+      // ALWAYS allow app to continue loading regardless of error type
+      // We'll handle specific errors in the Web3Auth provider
+      console.log("Error detected, but allowing app to continue loading:", event.error?.message);
+      
+      // Don't set app error for Web3Auth-related errors
+      if (event.error?.message?.includes("could not validate redirect") || 
+          event.error?.message?.includes("whitelist your domain")) {
+        console.log("Web3Auth domain error detected, app will continue loading");
+      } else if (event.error?.message?.includes("Web3Auth")) {
+        console.log("Other Web3Auth error detected, app will continue loading");
       } else {
+        // Only set app error for non-Web3Auth errors
         setAppError("An unexpected error occurred. Please check the console for details.");
       }
+      
+      // Prevent the error from crashing the app
+      event.preventDefault();
     };
     
     window.addEventListener('error', handleError);
@@ -60,15 +68,23 @@ const App = () => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       console.error("Unhandled promise rejection:", event.reason);
       
-      // Similar filtering for Web3Auth domain errors
-      const errorMessage = event.reason?.message || "An unknown error occurred";
-      if (errorMessage.includes("could not validate redirect") || 
-          errorMessage.includes("whitelist your domain")) {
-        console.log("Web3Auth domain error in promise, allowing app to continue loading");
-        // Don't set app error for this specific case
+      // ALWAYS allow app to continue loading regardless of error type
+      console.log("Promise rejection detected, but allowing app to continue loading:", 
+                 event.reason?.message || "Unknown promise rejection");
+      
+      // Don't set app error for Web3Auth-related errors
+      if (event.reason?.message?.includes("could not validate redirect") || 
+          event.reason?.message?.includes("whitelist your domain")) {
+        console.log("Web3Auth domain error in promise, app will continue loading");
+      } else if (event.reason?.message?.includes("Web3Auth")) {
+        console.log("Other Web3Auth error in promise, app will continue loading");
       } else {
+        // Only set app error for non-Web3Auth errors
         setAppError("An unexpected error occurred. Please check the console for details.");
       }
+      
+      // Prevent the promise rejection from crashing the app
+      event.preventDefault();
     };
     
     window.addEventListener('unhandledrejection', handleUnhandledRejection);

@@ -55,10 +55,13 @@ const Index = () => {
     }
   ]);
 
-  // Add the configError from useWeb3Auth
-  const { configError } = useWeb3Auth();
+  // Get the configError and domainError from useWeb3Auth
+  const { configError, domainError } = useWeb3Auth();
   
-  console.log("Web3Auth config error status:", configError ? "Error present" : "No error");
+  console.log("Web3Auth state:", { 
+    configError: configError ? "Error present" : "No error",
+    domainError: domainError
+  });
 
   useEffect(() => {
     // Any API calls that might be causing the error should be wrapped in try/catch
@@ -85,8 +88,13 @@ const Index = () => {
       <Features />
       
       {/* Display Web3Auth instructions if there's a configuration error */}
-      <div className="container mx-auto px-4">
-        {configError && <Web3AuthInstructions />}
+      <div className="container mx-auto px-4 py-6">
+        {(configError || domainError) && (
+          <>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Web3Auth Configuration</h2>
+            <Web3AuthInstructions />
+          </>
+        )}
       </div>
       
       {/* Featured Loans Section */}
