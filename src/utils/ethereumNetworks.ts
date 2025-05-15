@@ -28,10 +28,33 @@ export const EPHEMERY_NETWORK: EthereumNetwork = {
 };
 
 // Define all supported chain IDs for Ephemery
-// Some wallets might show different chain IDs for the same network
-export const EPHEMERY_CHAIN_IDS = ['0x53a', '0x259c741']; // 1338 in decimal and alternative ID
+// Support multiple formats that wallets might return
+export const EPHEMERY_CHAIN_IDS = [
+  '0x53a',           // Hex format (0x53a)
+  '0x000053a',       // Padded hex format
+  '0x0000053a',      // Alternative padding
+  '1338',            // Decimal string
+  1338,              // Decimal number
+  '0x259c741',       // Alternative ID
+];
 
 // Check if the current chain ID is one of our supported chain IDs
-export const isEphemeryNetwork = (chainId: string): boolean => {
-  return EPHEMERY_CHAIN_IDS.includes(chainId);
+export const isEphemeryNetwork = (chainId: string | number): boolean => {
+  // Convert number to string for comparison
+  const chainIdStr = chainId.toString().toLowerCase();
+  
+  // If the chainId is a numeric string without 0x prefix, try both formats
+  if (!chainIdStr.startsWith('0x') && !isNaN(Number(chainIdStr))) {
+    // Check both decimal and hex equivalent
+    const decimalValue = Number(chainIdStr);
+    const hexValue = `0x${decimalValue.toString(16)}`;
+    return EPHEMERY_CHAIN_IDS.some(id => 
+      id.toString().toLowerCase() === chainIdStr || 
+      id.toString().toLowerCase() === hexValue
+    );
+  }
+  
+  return EPHEMERY_CHAIN_IDS.some(id => 
+    id.toString().toLowerCase() === chainIdStr
+  );
 };

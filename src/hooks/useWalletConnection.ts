@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { 
@@ -27,6 +27,31 @@ export function useWalletConnection() {
   const [pendingConnection, setPendingConnection] = useState<PendingConnection>(null);
   const { user, connectWallet } = useAuth();
 
+  // Listen for chain changes
+  useEffect(() => {
+    if (!isWeb3Available()) return;
+
+    const handleChainChanged = async (chainId: string) => {
+      console.log("Chain changed to:", chainId);
+      
+      // If connected and chain was changed to something other than Ephemery
+      if (walletStatus === 'connected' && !isEphemeryNetwork(chainId)) {
+        toast.warning("Please switch back to Ephemery network to use this application");
+        setShowNetworkDialog(true);
+      } else if (walletStatus === 'connected' && isEphemeryNetwork(chainId)) {
+        // If switched back to Ephemery, hide the dialog
+        setShowNetworkDialog(false);
+        toast.success("Connected to Ephemery network");
+      }
+    };
+
+    window.ethereum.on('chainChanged', handleChainChanged);
+    
+    return () => {
+      window.ethereum.removeListener('chainChanged', handleChainChanged);
+    };
+  }, [walletStatus]);
+
   const connectWeb3Wallet = async () => {
     try {
       setWalletStatus('connecting');
@@ -48,6 +73,7 @@ export function useWalletConnection() {
       
       // Check if the current chain ID is in our list of supported Ephemery chain IDs
       if (!isEphemeryNetwork(chainId)) {
+        console.log("Not on Ephemery network. Current chain:", chainId);
         // Instead of automatically switching, save the pending connection and show dialog
         setPendingConnection({
           address,
@@ -57,6 +83,7 @@ export function useWalletConnection() {
         return; // Stop execution here until user responds to dialog
       }
       
+      console.log("Already on Ephemery network. Proceeding with connection.");
       // If we're already on the right network, proceed with wallet connection
       await handleCompleteConnection(address);
       
@@ -76,7 +103,9 @@ export function useWalletConnection() {
       setShowNetworkDialog(false);
       const { address } = pendingConnection;
       
+      console.log("Attempting to switch to Ephemery network...");
       await switchToEphemeryNetwork();
+      console.log("Network switch successful");
       
       // Now that we've switched networks, complete the connection
       await handleCompleteConnection(address);

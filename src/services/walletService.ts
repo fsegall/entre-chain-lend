@@ -33,13 +33,27 @@ export const getCurrentChainId = async (): Promise<string> => {
 // Switch the network in user's wallet
 export const switchToEphemeryNetwork = async (): Promise<void> => {
   try {
+    console.log("Requesting network switch to chainId:", EPHEMERY_NETWORK.chainId);
     await window.ethereum.request({
       method: 'wallet_switchEthereumChain',
       params: [{ chainId: EPHEMERY_NETWORK.chainId }],
     });
+
+    // Verify the switch was successful
+    const newChainId = await getCurrentChainId();
+    console.log("After switch, new chainId:", newChainId);
+
+    if (!isEphemeryNetwork(newChainId)) {
+      throw new Error("Network switch failed: Chain ID mismatch");
+    }
+
   } catch (switchError: any) {
+    console.error("Network switch error:", switchError);
+    
     // This error code indicates that the chain has not been added to MetaMask
-    if (switchError.code === 4902) {
+    if (switchError.code === 4902 || switchError.message?.includes("wallet_addEthereumChain")) {
+      console.log("Network not found, attempting to add Ephemery network...");
+      
       await window.ethereum.request({
         method: 'wallet_addEthereumChain',
         params: [
@@ -52,6 +66,12 @@ export const switchToEphemeryNetwork = async (): Promise<void> => {
           },
         ],
       });
+      
+      // Verify the network was added and switched to
+      const verifyChainId = await getCurrentChainId();
+      if (!isEphemeryNetwork(verifyChainId)) {
+        throw new Error("Failed to add and switch to Ephemery network");
+      }
     } else {
       throw switchError;
     }
