@@ -8,6 +8,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+// Add a type definition for the window.ethereum object
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
 const WalletConnect = () => {
   const [walletStatus, setWalletStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [walletAddress, setWalletAddress] = useState<string>('');
@@ -30,6 +37,49 @@ const WalletConnect = () => {
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       const address = accounts[0];
       
+      console.log("Connected to wallet address:", address);
+      
+      // Check if we're connected to Sepolia testnet (chainId 11155111)
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      console.log("Current chain ID:", chainId);
+      
+      // Sepolia testnet chainId is 0xaa36a7 in hex (11155111 in decimal)
+      if (chainId !== '0xaa36a7') {
+        // Ask user to switch to Sepolia
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0xaa36a7' }], // Sepolia testnet chainId in hex
+          });
+        } catch (switchError: any) {
+          // This error code indicates that the chain has not been added to MetaMask
+          if (switchError.code === 4902) {
+            try {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [
+                  {
+                    chainId: '0xaa36a7',
+                    chainName: 'Sepolia Testnet',
+                    nativeCurrency: {
+                      name: 'Sepolia ETH',
+                      symbol: 'SepoliaETH',
+                      decimals: 18,
+                    },
+                    rpcUrls: ['https://sepolia.infura.io/v3/'],
+                    blockExplorerUrls: ['https://sepolia.etherscan.io'],
+                  },
+                ],
+              });
+            } catch (addError) {
+              throw new Error("Failed to add Sepolia network to your wallet");
+            }
+          } else {
+            throw switchError;
+          }
+        }
+      }
+      
       // Get a nonce from our edge function
       const { data: nonceData, error: nonceError } = await supabase.functions.invoke('wallet-auth', {
         body: { action: 'get_nonce' }
@@ -39,10 +89,14 @@ const WalletConnect = () => {
         throw new Error(`Failed to get nonce: ${nonceError.message}`);
       }
       
+      console.log("Received nonce message to sign:", nonceData.message);
+      
       // Ask user to sign the message
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const signature = await signer.signMessage(nonceData.message);
+      
+      console.log("Message signed:", signature);
       
       // Verify the signature with our edge function
       const { data: verifyData, error: verifyError } = await supabase.functions.invoke('wallet-auth', {
@@ -57,6 +111,8 @@ const WalletConnect = () => {
       if (verifyError) {
         throw new Error(`Verification failed: ${verifyError.message}`);
       }
+      
+      console.log("Verification successful:", verifyData);
       
       // If successful, update the user's profile
       if (user) {
