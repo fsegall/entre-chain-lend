@@ -10,6 +10,8 @@ import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
+  console.log("Index page rendering");
+  
   // Sample featured loans
   const [featuredLoans] = useState<LoanProps[]>([
     {

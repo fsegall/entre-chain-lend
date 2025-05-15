@@ -1,13 +1,30 @@
+import { createRoot } from 'react-dom/client';
+import App from './App.tsx';
+import './index.css';
 
-import { createRoot } from 'react-dom/client'
-import App from './App.tsx'
-import './index.css'
-
-// Debug information for auth flow
-console.log('App starting on path:', window.location.pathname);
+// Debug information for app initialization
+console.log('Starting application initialization...');
+console.log('Current path:', window.location.pathname);
 console.log('Full URL:', window.location.href);
 
-// Help detect and fix redirect loops by logging auth state
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  console.error("Root element not found! The application cannot render.");
+} else {
+  console.log("Root element found, creating React root...");
+  const root = createRoot(rootElement);
+  
+  console.log("Rendering App component...");
+  try {
+    root.render(<App />);
+    console.log("App component rendered successfully");
+  } catch (error) {
+    console.error("Error rendering App component:", error);
+  }
+}
+
+// Debug information for auth flow
 if (window.location.pathname === '/auth-callback') {
   console.log('Auth callback detected - location hash:', window.location.hash);
   console.log('Auth callback detected - location search:', window.location.search);
@@ -33,5 +50,3 @@ if (window.location.pathname === '/') {
   sessionStorage.removeItem('auth_callback_processed');
   sessionStorage.removeItem('auth_callback_count');
 }
-
-createRoot(document.getElementById("root")!).render(<App />);

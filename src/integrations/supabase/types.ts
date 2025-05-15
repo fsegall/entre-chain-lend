@@ -231,6 +231,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_exists: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      assign_initial_admin: {
+        Args: { admin_user_id: string }
+        Returns: undefined
+      }
       get_loan_funded_amount: {
         Args: { loan_id: string }
         Returns: number
@@ -248,6 +256,18 @@ export type Database = {
           _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
         }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
+      is_privileged_role: {
+        Args: { role_name: string }
+        Returns: boolean
+      }
+      is_user_admin: {
+        Args: { user_id: string }
         Returns: boolean
       }
     }
