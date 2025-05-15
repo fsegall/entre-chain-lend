@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Web3Auth } from '@web3auth/modal';
-import { CHAIN_NAMESPACES, IProvider } from '@web3auth/base';
+import { CHAIN_NAMESPACES, IProvider, OPENLOGIN_NETWORK } from '@web3auth/base';
 import { EthereumPrivateKeyProvider } from '@web3auth/ethereum-provider';
 import { ethers } from 'ethers';
 import { toast } from 'sonner';
@@ -25,7 +25,7 @@ const Web3AuthContext = createContext<Web3AuthContextType | undefined>(undefined
 // Web3Auth configuration
 const web3AuthOptions = {
   clientId: 'BEXt8ZqSKGKUINb_xaUK3GFGjm7CJqWoUjD5zHl8iiztYgXXcK6-pqyIMaIy9QXQ95LJK1wtXBGXlHO4BIWKJO0', // Public Auth0 client ID
-  web3AuthNetwork: 'sapphire_devnet',
+  web3AuthNetwork: OPENLOGIN_NETWORK.SAPPHIRE_DEVNET,
   chainConfig: {
     chainNamespace: CHAIN_NAMESPACES.EIP155,
     chainId: '0x1', // Ethereum mainnet
@@ -37,7 +37,7 @@ const web3AuthOptions = {
     appLogo: 'https://web3auth.io/images/w3a-L-Favicon-1.svg',
     defaultLanguage: 'en',
     modalZIndex: '2147483647',
-    primaryButton: 'socialLogin',
+    primaryButton: 'socialLogin' as const,
   },
 };
 
@@ -106,16 +106,16 @@ export const Web3AuthProvider = ({ children }: { children: ReactNode }) => {
       toast.loading("Connecting to wallet...");
       
       // Open the Web3Auth modal for authentication
-      const provider = await web3Auth.connect();
+      const web3authProvider = await web3Auth.connect();
       
       // Get provider and user info after successful authentication
-      if (provider) {
-        const ethersProvider = new ethers.BrowserProvider(provider as any);
+      if (web3authProvider) {
+        const ethersProvider = new ethers.BrowserProvider(web3authProvider as any);
         const signer = await ethersProvider.getSigner();
         const userAddress = await signer.getAddress();
         
         setAddress(userAddress);
-        setProvider(provider);
+        setProvider(web3authProvider);
         setIsConnected(true);
         
         // Update Supabase profile if user is authenticated

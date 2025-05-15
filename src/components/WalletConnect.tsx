@@ -1,10 +1,9 @@
 
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import { Button } from "@/components/ui/button";
-import { Wallet, Loader2, AlertCircle } from "lucide-react";
+import { Wallet, Loader2 } from "lucide-react";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useEffect } from "react";
-import { toast } from "sonner";
 
 const WalletConnect = () => {
   const {
