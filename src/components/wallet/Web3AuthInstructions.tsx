@@ -11,10 +11,10 @@ import { AlertCircle } from "lucide-react";
 const Web3AuthInstructions = () => {
   return (
     <div className="mt-4 p-4 border rounded-md bg-gray-50">
-      <Alert variant="warning" className="mb-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Web3Auth Configuration Required</AlertTitle>
-        <AlertDescription>
+      <Alert className="mb-4 border-amber-200 bg-amber-50">
+        <AlertCircle className="h-4 w-4 text-amber-700" />
+        <AlertTitle className="text-amber-700">Web3Auth Configuration Required</AlertTitle>
+        <AlertDescription className="text-amber-700">
           To enable Web3Auth wallet functionality, you need to configure your Web3Auth Client ID.
         </AlertDescription>
       </Alert>
