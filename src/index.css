@@ -48,14 +48,14 @@
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    --background: 240 6% 6%;  /* Changed to match hex #0F0F10 */
+    --foreground: 0 0% 98%;
 
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
+    --card: 240 6% 6%;  /* Changed to match hex #0F0F10 */
+    --card-foreground: 0 0% 98%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 6% 6%;  /* Changed to match hex #0F0F10 */
+    --popover-foreground: 0 0% 98%;
 
     --primary: 215 75% 24%;
     --primary-foreground: 210 40% 98%;
@@ -75,6 +75,15 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+
+    --sidebar-background: 240 6% 6%;  /* Changed to match hex #0F0F10 */
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 0 0% 98%;
+    --sidebar-primary-foreground: 240 6% 6%;  /* Changed to match hex #0F0F10 */
+    --sidebar-accent: 240 6% 10%;  /* Adjusted to be slightly lighter than background */
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 6% 10%;  /* Adjusted to be slightly lighter than background */
+    --sidebar-ring: 240 4.9% 83.9%;
   }
 }
 
@@ -94,7 +103,7 @@
   }
   
   .btn-primary {
-    @apply bg-blockloan-blue text-white hover:bg-opacity-90 transition-all;
+    @apply bg-blockloan-blue text-white hover:bg-opacity-90 transition-all dark:bg-blockloan-teal;
   }
   
   .btn-secondary {
@@ -106,6 +115,31 @@
   }
   
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-lg hover:translate-y-[-4px];
+    @apply transition-all duration-300 hover:shadow-lg hover:translate-y-[-4px] dark:hover:shadow-gray-800/30;
+  }
+  
+  .dark-card {
+    @apply dark:bg-gray-800 dark:border dark:border-gray-700;
+  }
+  
+  .dark-border {
+    @apply dark:border-gray-700;
+  }
+
+  /* Adding dark mode specific text styles for better contrast */
+  .dark .text-blockloan-blue {
+    @apply text-white;
+  }
+
+  .dark .text-blockloan-gray {
+    @apply text-gray-300;
+  }
+
+  .dark .text-gray-600 {
+    @apply text-gray-300;
+  }
+
+  .dark .text-gray-500 {
+    @apply text-gray-400;
   }
 }
