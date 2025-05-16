@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ const Navbar = () => {
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center">
               <span className="text-2xl font-bold text-blockloan-blue">
-                Block<span className="text-blockloan-teal">Loan</span>
+                ZK<span className="text-blockloan-teal">finance</span>
               </span>
             </Link>
             <div className="hidden md:block ml-10">
