@@ -46,12 +46,12 @@ const LoanCard = ({ loan }: { loan: LoanProps }) => {
   const fundingPercentage = Math.floor((loan.funded / loan.amount) * 100);
   
   return (
-    <Card className="overflow-hidden card-hover">
+    <Card className="overflow-hidden card-hover dark:bg-gray-900">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-blockloan-blue">{loan.title}</CardTitle>
-            <CardDescription className="flex items-center mt-1">
+            <CardTitle className="text-blockloan-blue dark:text-white">{loan.title}</CardTitle>
+            <CardDescription className="flex items-center mt-1 dark:text-gray-300">
               <UserIcon className="h-3 w-3 mr-1" />
               {loan.borrower}
             </CardDescription>
@@ -75,7 +75,7 @@ const LoanCard = ({ loan }: { loan: LoanProps }) => {
           <Badge className={`${getCategoryColor(loan.category)}`}>
             {loan.category}
           </Badge>
-          <div className="flex items-center text-xs text-gray-500">
+          <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
             <CalendarIcon className="h-3 w-3 mr-1" />
             <span>{loan.term} months</span>
           </div>
@@ -83,16 +83,16 @@ const LoanCard = ({ loan }: { loan: LoanProps }) => {
         
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div>
-            <p className="text-xs text-gray-500 mb-1">Amount</p>
-            <p className="font-medium">${loan.amount.toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mb-1 dark:text-gray-400">Amount</p>
+            <p className="font-medium dark:text-white">${loan.amount.toLocaleString()}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500 mb-1">Interest</p>
-            <p className="font-medium">{loan.interestRate}% APR</p>
+            <p className="text-xs text-gray-500 mb-1 dark:text-gray-400">Interest</p>
+            <p className="font-medium dark:text-white">{loan.interestRate}% APR</p>
           </div>
           <div>
             <div className="flex items-center">
-              <p className="text-xs text-gray-500 mb-1">Expires</p>
+              <p className="text-xs text-gray-500 mb-1 dark:text-gray-400">Expires</p>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -105,21 +105,21 @@ const LoanCard = ({ loan }: { loan: LoanProps }) => {
               </TooltipProvider>
             </div>
             <div className="flex items-center">
-              <Clock className="h-3 w-3 mr-1 text-gray-500" />
-              <p className="font-medium text-sm">{loan.deadline}</p>
+              <Clock className="h-3 w-3 mr-1 text-gray-500 dark:text-gray-400" />
+              <p className="font-medium text-sm dark:text-white">{loan.deadline}</p>
             </div>
           </div>
         </div>
         
         <div className="mb-2">
           <div className="flex justify-between text-sm mb-1">
-            <span>Funding Progress</span>
-            <span className="font-medium">{fundingPercentage}%</span>
+            <span className="dark:text-white">Funding Progress</span>
+            <span className="font-medium dark:text-white">{fundingPercentage}%</span>
           </div>
           <Progress value={fundingPercentage} className="h-2" />
         </div>
         
-        <div className="text-xs text-gray-500 flex justify-between">
+        <div className="text-xs text-gray-500 flex justify-between dark:text-gray-400">
           <span>Funded: ${loan.funded.toLocaleString()}</span>
           <span>Goal: ${loan.amount.toLocaleString()}</span>
         </div>
