@@ -184,7 +184,7 @@ const Index = () => {
             <Button size="lg" className="bg-white text-blockloan-blue hover:bg-gray-100">
               Apply for Business Loan
             </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+            <Button size="lg" variant="outline" className="border-white text-blockloan-blue hover:text-white hover:bg-blockloan-blue/50">
               Become a Lender
             </Button>
           </div>
