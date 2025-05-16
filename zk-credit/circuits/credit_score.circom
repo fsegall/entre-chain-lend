@@ -1,13 +1,16 @@
+pragma circom 2.2.2;
+
+include "circomlib/circuits/comparators.circom";
+
 template CreditScoreCheck() {
-    // Entradas privadas
-    signal input score;
+    signal input score;      // privado
+    signal input threshold;  // público
+    signal output passed;    // público
 
-    // Entradas públicas
-    signal input threshold;
-    signal output passed;
-
-    // Lógica: passou no score?
-    passed <== score >= threshold;
+    component isGreaterEq = GreaterEqThan(16);
+    isGreaterEq.in[0] <== score;
+    isGreaterEq.in[1] <== threshold;
+    passed <== isGreaterEq.out;
 }
 
 component main = CreditScoreCheck();
