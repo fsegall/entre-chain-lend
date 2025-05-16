@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/auth/AuthProvider";
 import { Web3AuthProvider } from "@/hooks/useWeb3Auth";
+import { DarkModeProvider } from "@/hooks/useDarkMode";
 import { useState, useEffect } from "react";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -119,24 +120,26 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Sonner position="top-center" />
-        <BrowserRouter>
-          <AuthProvider>
-            <Web3AuthProvider>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/auth-callback" element={<AuthCallback />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Web3AuthProvider>
-          </AuthProvider>
-        </BrowserRouter>
+        <DarkModeProvider>
+          <Sonner position="top-center" />
+          <BrowserRouter>
+            <AuthProvider>
+              <Web3AuthProvider>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/auth-callback" element={<AuthCallback />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Web3AuthProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </DarkModeProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

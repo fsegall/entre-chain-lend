@@ -6,7 +6,7 @@ import { Facebook, Instagram, Linkedin, Twitter } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="bg-blockloan-blue text-white">
+    <footer className="bg-blockloan-blue text-white dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
@@ -82,7 +82,7 @@ const Footer = () => {
                 placeholder="Your email" 
                 className="bg-white/10 border-white/20 text-white placeholder-gray-400" 
               />
-              <Button className="bg-blockloan-gold text-white hover:bg-blockloan-gold/90">
+              <Button className="bg-blockloan-gold text-white hover:bg-blockloan-gold/90 dark:bg-blockloan-teal dark:hover:bg-blockloan-teal/90">
                 Subscribe
               </Button>
             </div>
