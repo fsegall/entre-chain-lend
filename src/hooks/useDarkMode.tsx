@@ -14,8 +14,8 @@ export const DarkModeProvider = ({ children }: { children: React.ReactNode }) =>
     if (savedPreference !== null) {
       return savedPreference === "true";
     }
-    // Otherwise check for system preference
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    // Default to dark mode
+    return true;
   });
 
   useEffect(() => {
