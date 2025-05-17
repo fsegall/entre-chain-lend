@@ -1,5 +1,4 @@
-
-project_id = "gkikgsfbwhlzassknnun"
+project_id = "tzpfzthlkuzeapftowxq"
 
 [functions.wallet-auth]
 verify_jwt = false

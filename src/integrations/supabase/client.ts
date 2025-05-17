@@ -3,8 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 // Use the environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseUrl = "https://tzpfzthlkuzeapftowxq.supabase.co";
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Anon Key exists:', !!supabaseAnonKey);
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
@@ -21,5 +24,10 @@ export const supabase = createClient<Database>(
       detectSessionInUrl: true,
       flowType: 'pkce'
     },
+    global: {
+      headers: {
+        'x-application-name': 'entre-chain-lend'
+      }
+    }
   }
 );

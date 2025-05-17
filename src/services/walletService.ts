@@ -1,4 +1,3 @@
-
 import { ethers } from "ethers";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -7,7 +6,7 @@ import {
   isSupportedNetwork, 
   getNetworkFromChainId 
 } from "@/utils/ethereumNetworks";
-import { toast } from "sonner";
+import { toast } from "react-toastify";
 
 // Add a type definition for the window.ethereum object
 declare global {

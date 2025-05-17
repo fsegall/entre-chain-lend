@@ -1,23 +1,25 @@
-import { useState } from "react";
+import { useState } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import WalletConnect from "./WalletConnect";
-import RoleSwitcher from "./RoleSwitcher";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import DarkModeToggle from "./DarkModeToggle";
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import WalletConnect from './wallet/WalletConnect';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { isLoggedIn, setIsLoggedIn, role, setRole } = useAuth();
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error("Sign out error:", error);
-    }
+  const handleSignOut = () => {
+    setIsLoggedIn(false);
+    navigate('/');
+  };
+
+  const handleRoleToggle = (checked: boolean) => {
+    setRole(checked ? 'lender' : 'borrower');
   };
 
   return (
@@ -41,7 +43,7 @@ const Navbar = () => {
                 <Link to="/about" className="px-3 py-2 rounded-md text-sm font-medium text-blockloan-gray hover:text-blockloan-teal dark:text-gray-300 dark:hover:text-blockloan-gold">
                   How It Works
                 </Link>
-                {user && (
+                {isLoggedIn && (
                   <Link to="/dashboard" className="px-3 py-2 rounded-md text-sm font-medium text-blockloan-gray hover:text-blockloan-teal dark:text-gray-300 dark:hover:text-blockloan-gold">
                     Dashboard
                   </Link>
@@ -49,46 +51,64 @@ const Navbar = () => {
               </div>
             </div>
           </div>
-          <div className="hidden md:block">
-            <div className="flex items-center gap-4">
-              <DarkModeToggle />
-              {user && <RoleSwitcher />}
-              <WalletConnect />
-              
-              {user ? (
+
+          <div className="hidden md:flex items-center space-x-4">
+            <DarkModeToggle />
+            <WalletConnect />
+            {isLoggedIn && (
+              <div className="flex items-center space-x-2 mr-4">
+                <Label htmlFor="role-toggle" className="text-sm text-gray-600 dark:text-gray-300">
+                  {role === 'lender' ? 'Lender' : 'Borrower'}
+                </Label>
+                <Switch
+                  id="role-toggle"
+                  checked={role === 'lender'}
+                  onCheckedChange={handleRoleToggle}
+                />
+              </div>
+            )}
+            {isLoggedIn ? (
+              <Button 
+                variant="outline" 
+                className="border-blockloan-teal text-blockloan-teal dark:border-blockloan-gold dark:text-blockloan-gold"
+                onClick={handleSignOut}
+              >
+                Sign Out
+              </Button>
+            ) : (
+              <>
                 <Button 
                   variant="outline" 
-                  className="border-blockloan-teal text-blockloan-teal hover:bg-blockloan-teal/10 dark:border-blockloan-gold dark:text-blockloan-gold dark:hover:bg-blockloan-gold/10"
-                  onClick={handleSignOut}
+                  className="border-blockloan-teal text-blockloan-teal dark:border-blockloan-gold dark:text-blockloan-gold"
+                  onClick={() => navigate('/login')}
                 >
-                  Sign Out
+                  Sign In
                 </Button>
-              ) : (
-                <>
-                  <Button 
-                    variant="outline" 
-                    className="border-blockloan-teal text-blockloan-teal hover:bg-blockloan-teal/10 dark:border-blockloan-gold dark:text-blockloan-gold dark:hover:bg-blockloan-gold/10"
-                    onClick={() => navigate('/login')}
-                  >
-                    Sign In
-                  </Button>
-                  <Button 
-                    className="bg-blockloan-blue text-white hover:bg-blockloan-blue/90 dark:bg-blockloan-teal dark:hover:bg-blockloan-teal/90"
-                    onClick={() => navigate('/signup')}
-                  >
-                    Register
-                  </Button>
-                </>
-              )}
-            </div>
+                <Button 
+                  className="bg-blockloan-blue text-white dark:bg-blockloan-teal"
+                  onClick={() => navigate('/signup')}
+                >
+                  Register
+                </Button>
+              </>
+            )}
           </div>
-          <div className="md:hidden flex items-center">
-            <DarkModeToggle />
+
+          <div className="md:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="ml-2 inline-flex items-center justify-center p-2 rounded-md text-blockloan-gray hover:text-blockloan-blue focus:outline-none dark:text-gray-400 dark:hover:text-white"
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blockloan-teal dark:hover:bg-gray-800"
             >
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              <span className="sr-only">Open main menu</span>
+              {!isMenuOpen ? (
+                <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              ) : (
+                <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
@@ -97,49 +117,61 @@ const Navbar = () => {
       {/* Mobile menu */}
       {isMenuOpen && (
         <div className="md:hidden">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white dark:bg-[#0F0F10]">
-            <Link 
-              to="/" 
+          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+            <Link
+              to="/"
               className="block px-3 py-2 rounded-md text-base font-medium text-blockloan-blue hover:text-blockloan-teal dark:text-white dark:hover:text-blockloan-gold"
               onClick={() => setIsMenuOpen(false)}
             >
               Home
             </Link>
-            <Link 
-              to="/loans" 
+            <Link
+              to="/loans"
               className="block px-3 py-2 rounded-md text-base font-medium text-blockloan-gray hover:text-blockloan-teal dark:text-gray-300 dark:hover:text-blockloan-gold"
               onClick={() => setIsMenuOpen(false)}
             >
               Marketplace
             </Link>
-            <Link 
-              to="/about" 
+            <Link
+              to="/about"
               className="block px-3 py-2 rounded-md text-base font-medium text-blockloan-gray hover:text-blockloan-teal dark:text-gray-300 dark:hover:text-blockloan-gold"
               onClick={() => setIsMenuOpen(false)}
             >
               How It Works
             </Link>
-            {user && (
-              <Link 
-                to="/dashboard" 
+            {isLoggedIn && (
+              <Link
+                to="/dashboard"
                 className="block px-3 py-2 rounded-md text-base font-medium text-blockloan-gray hover:text-blockloan-teal dark:text-gray-300 dark:hover:text-blockloan-gold"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Dashboard
               </Link>
             )}
-            <div className="pt-4 flex flex-col gap-2">
-              {user && <RoleSwitcher />}
+          </div>
+          <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center px-5">
+              <DarkModeToggle />
+            </div>
+            <div className="mt-3 px-2 space-y-1">
               <WalletConnect />
-              
-              {user ? (
+              {isLoggedIn && (
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="role-toggle-mobile" className="text-sm text-gray-600 dark:text-gray-300">
+                    {role === 'lender' ? 'Lender' : 'Borrower'}
+                  </Label>
+                  <Switch
+                    id="role-toggle-mobile"
+                    checked={role === 'lender'}
+                    onCheckedChange={handleRoleToggle}
+                  />
+                </div>
+              )}
+              {isLoggedIn ? (
                 <Button 
                   variant="outline" 
-                  className="border-blockloan-teal text-blockloan-teal w-full dark:border-blockloan-gold dark:text-blockloan-gold"
-                  onClick={() => {
-                    handleSignOut();
-                    setIsMenuOpen(false);
-                  }}
+                  className="w-full mt-2 border-blockloan-teal text-blockloan-teal dark:border-blockloan-gold dark:text-blockloan-gold"
+                  onClick={handleSignOut}
                 >
                   Sign Out
                 </Button>
@@ -147,20 +179,14 @@ const Navbar = () => {
                 <>
                   <Button 
                     variant="outline" 
-                    className="border-blockloan-teal text-blockloan-teal w-full dark:border-blockloan-gold dark:text-blockloan-gold"
-                    onClick={() => {
-                      navigate('/login');
-                      setIsMenuOpen(false);
-                    }}
+                    className="w-full mt-2 border-blockloan-teal text-blockloan-teal dark:border-blockloan-gold dark:text-blockloan-gold"
+                    onClick={() => navigate('/login')}
                   >
                     Sign In
                   </Button>
                   <Button 
-                    className="bg-blockloan-blue text-white w-full dark:bg-blockloan-teal"
-                    onClick={() => {
-                      navigate('/signup');
-                      setIsMenuOpen(false);
-                    }}
+                    className="w-full mt-2 bg-blockloan-blue text-white dark:bg-blockloan-teal"
+                    onClick={() => navigate('/signup')}
                   >
                     Register
                   </Button>

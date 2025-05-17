@@ -1,261 +1,175 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "react-toastify";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { AuthUser, AuthContextType } from "./types";
 import { formatUser } from "./utils";
 import { fetchUserProfile } from "./profileService";
-import { setUserRole as updateUserRole, connectWallet as updateWalletAddress } from "./roleService";
 import * as authService from "./authService";
 import AuthContext from "./AuthContext";
+import React, { useContext, ReactNode } from 'react';
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const mountedRef = useRef(true);
 
-  // Method to refresh user profile data
-  const refreshUserProfile = async (): Promise<void> => {
-    if (!session?.user) return;
-    
-    try {
-      console.log("Refreshing user profile for:", session.user.id);
-      const { profile, roles } = await fetchUserProfile(session.user.id);
-      
-      console.log("Profile data received:", { 
-        profile,
-        roles,
-        email: session.user.email
-      });
-      
-      // Update the user with profile data and roles
-      setUser(prev => {
-        if (!prev) return null;
-        
-        const updatedUser = {
-          ...prev,
-          ...profile,
-          roles: roles
-        };
-        
-        console.log("Updated user state:", updatedUser);
-        return updatedUser;
-      });
-    } catch (error) {
-      console.error("Error refreshing user profile:", error);
-      throw error;
-    }
-  };
-  
-  // Check for existing session on mount
+  // Initialize auth state
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        console.log("Auth state changed:", event);
-        setSession(newSession);
-        
-        if (newSession?.user) {
-          const formattedUser = formatUser(newSession.user, newSession);
-          setUser(formattedUser);
-          
-          // Defer additional data loading to avoid auth state deadlocks
-          setTimeout(() => {
-            refreshUserProfile();
-          }, 0);
-        } else {
-          setUser(null);
-        }
-        
-        setLoading(false);
-      }
-    );
+    console.log("Setting up auth state listener...");
+    setLoading(true);
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session?.user?.email);
+      if (!mountedRef.current) return;
       
-      if (session?.user) {
+      if (session) {
+        console.log("Setting new session and user...");
+        setSession(session);
         const formattedUser = formatUser(session.user, session);
+        console.log("Formatted user from auth change:", formattedUser);
         setUser(formattedUser);
         
-        // Defer additional data loading to avoid auth state deadlocks
-        setTimeout(() => {
-          refreshUserProfile();
-        }, 0);
+        // Handle both SIGNED_IN and INITIAL_SESSION events
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+          console.log("Fetching profile...");
+          const { profile } = await fetchUserProfile(session.user.id);
+          if (mountedRef.current) {
+            console.log("Setting user profile:", profile);
+            setUser(prev => {
+              const updatedUser = prev ? { ...prev, ...profile } : null;
+              console.log("Updated user with profile:", updatedUser);
+              return updatedUser;
+            });
+          }
+        }
+      } else {
+        console.log("Session cleared, resetting user and session");
+        setSession(null);
+        setUser(null);
       }
-      
-      setLoading(false);
+
+      // Set loading to false after handling the event
+      if (mountedRef.current) {
+        console.log("Setting loading to false after auth state change");
+        setLoading(false);
+      }
     });
 
-    // Cleanup subscription on unmount
     return () => {
+      console.log("Cleaning up auth state...");
+      mountedRef.current = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
 
   // Authentication methods
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
+      console.log("Starting sign in...");
       setLoading(true);
-      const result = await authService.signIn(email, password);
-      
-      // Update state
-      setSession(result.session);
-      setUser(result.user);
-      
-      // Refresh user profile to get roles and additional data
-      setTimeout(() => {
-        refreshUserProfile();
-      }, 0);
-      
-      navigate("/dashboard");
+      await authService.signInWithEmail(email, password);
+      console.log("Sign in successful");
     } catch (error: any) {
       console.error("Sign in error:", error);
       toast.error(error.message || "Failed to sign in. Please check your credentials.");
       throw error;
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signInWithGoogle = useCallback(async () => {
+    try {
+      console.log("Starting Google sign in...");
+      setLoading(true);
+      await authService.signInWithGoogle();
+      console.log("Google sign in initiated");
+    } catch (error: any) {
+      console.error("Google sign in error:", error);
+      toast.error(error.message || "Failed to sign in with Google. Please try again.");
+      throw error;
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  const signInWithGithub = useCallback(async () => {
+    try {
+      console.log("Starting GitHub sign in...");
+      setLoading(true);
+      await authService.signInWithGithub();
+      console.log("GitHub sign in initiated");
+    } catch (error: any) {
+      console.error("GitHub sign in error:", error);
+      toast.error(error.message || "Failed to sign in with GitHub. Please try again.");
+      throw error;
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  const signUp = useCallback(async (email: string, password: string, fullName: string) => {
     try {
       setLoading(true);
-      const result = await authService.signUp(email, password, fullName);
-
-      if (result.user) {
-        // Create or update the profile to ensure it's marked as not onboarded
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({ 
-            id: result.user.id,
-            full_name: fullName,
-            is_onboarded: false,  // Explicitly set to false to ensure role selection appears
-            role_selection: null   // Clear any existing role to force selection
-          });
-          
-        if (profileError) {
-          console.error("Profile setup error:", profileError);
-          toast.error("Account created but profile setup failed");
-        }
-        
-        // Insert visitor role to ensure proper role selection flow
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({ user_id: result.user.id, role: 'visitor' });
-          
-        if (roleError) {
-          console.error("Role setup error:", roleError);
-        }
-        
-        setSession(result.session);
-        setUser(result.user);
-        
-        // Refresh user profile to get roles and additional data
-        setTimeout(() => {
-          refreshUserProfile();
-        }, 0);
-        
-        toast.success("Account created successfully!");
-        navigate("/dashboard");
-      } else {
-        // Some Supabase instances require email verification
-        toast.success("Please check your email to confirm your account.");
-      }
+      await authService.signUp(email, password, fullName);
+      toast.info("Please check your email to confirm your account.");
     } catch (error: any) {
-      console.error("Sign up error:", error);
       toast.error(error.message || "Failed to create account. Please try again.");
       throw error;
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       setLoading(true);
       await authService.signOut();
-      
-      setUser(null);
-      setSession(null);
-      toast.success("Signed out successfully");
-      navigate("/");
     } catch (error: any) {
-      console.error("Sign out error:", error);
       toast.error(error.message || "Failed to sign out. Please try again.");
+      throw error;
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
-  // Role selection function
-  const setUserRole = async (role: 'borrower' | 'lender') => {
-    if (!user) {
-      toast.error("You must be logged in to set a role");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      await updateUserRole(user.id, role);
-      
-      // Refresh user profile to get updated roles
-      await refreshUserProfile();
-      
-      toast.success(`You are now registered as a ${role}`);
-    } catch (error: any) {
-      console.error("Role selection error:", error);
-      toast.error(error.message || `Failed to set role as ${role}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Wallet connection function
-  const connectWallet = async (address: string) => {
-    if (!user) {
-      toast.error("You must be logged in to connect a wallet");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      await updateWalletAddress(user.id, address);
-      
-      // Update local user state
-      setUser(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          wallet_address: address
-        };
-      });
-      
-      toast.success("Wallet connected successfully");
-    } catch (error: any) {
-      console.error("Wallet connection error:", error);
-      toast.error(error.message || "Failed to connect wallet");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const value = useMemo(() => ({
+    user,
+    session,
+    loading,
+    signIn,
+    signInWithGoogle,
+    signInWithGithub,
+    signUp,
+    signOut
+  }), [user, session, loading, signIn, signInWithGoogle, signInWithGithub, signUp, signOut]);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      session, 
-      loading, 
-      signIn,
-      signUp,
-      signOut,
-      refreshUserProfile,
-      setUserRole,
-      connectWallet
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

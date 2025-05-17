@@ -1,25 +1,23 @@
+import { Session } from "@supabase/supabase-js";
 
-import { Session, User } from "@supabase/supabase-js";
-
-export type AuthUser = {
+export interface AuthUser {
   id: string;
   email: string;
-  full_name?: string;
+  full_name: string;
   avatar_url?: string;
-  is_onboarded?: boolean;
-  role_selection?: string;
-  roles?: string[];
   wallet_address?: string;
-};
+  role_selection?: 'borrower' | 'lender';
+  is_onboarded?: boolean;
+  roles?: string[];
+}
 
-export type AuthContextType = {
+export interface AuthContextType {
   user: AuthUser | null;
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithGithub: () => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
-  refreshUserProfile: () => Promise<void>;
-  setUserRole: (role: 'borrower' | 'lender') => Promise<void>;
-  connectWallet: (address: string) => Promise<void>;
-};
+}

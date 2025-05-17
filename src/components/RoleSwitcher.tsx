@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 const RoleSwitcher = () => {
-  const { user, refreshUserProfile } = useAuth();
+  const { user, refreshUserProfile, setUserRole } = useAuth();
   const [isLender, setIsLender] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -37,47 +37,11 @@ const RoleSwitcher = () => {
     
     try {
       const newRole = checked ? 'lender' : 'borrower';
-      
-      // First, remove any existing roles
-      const { error: deleteError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', user.id)
-        .in('role', ['lender', 'borrower']);
-        
-      if (deleteError) throw deleteError;
-      
-      // Then, insert the new role
-      const { error: insertError } = await supabase
-        .from('user_roles')
-        .insert({ 
-          user_id: user.id,
-          role: newRole
-        });
-        
-      if (insertError) throw insertError;
-      
-      // Update profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ 
-          role_selection: newRole,
-          is_onboarded: true 
-        })
-        .eq('id', user.id);
-        
-      if (profileError) throw profileError;
-      
-      // Update local state
+      await setUserRole(newRole);
       setIsLender(checked);
-      
-      // Refresh user profile
       await refreshUserProfile();
-      
-      toast.success(`You are now a ${newRole}`);
     } catch (error: any) {
       console.error("Error updating role:", error);
-      toast.error(error.message || "Failed to update role");
       // Revert the switch if there was an error
       setIsLender(!checked);
     }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { toast } from "sonner";
+import { toast } from "react-toastify";
 import { useAuth } from "@/hooks/useAuth";
 import { 
   isWeb3Available, 

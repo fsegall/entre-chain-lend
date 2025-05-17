@@ -1,19 +1,41 @@
-
-// Importing the Sonner toast library
-import { toast as sonnerToast } from "sonner";
+import { toast, ToastOptions } from "react-toastify";
 
 // Types
-export type ToastProps = React.ComponentProps<typeof sonnerToast>;
+export type ToastProps = React.ComponentProps<typeof toast>;
 
-// Re-export the toast function from sonner for direct usage
-export const toast = sonnerToast;
+// Re-export the toast function from react-toastify for direct usage
+export const toastFunction = toast;
+
+type ToastType = "success" | "error" | "info" | "warning";
 
 // Hook for using toast
 export const useToast = () => {
+  const showToast = (type: ToastType, message: string, options?: ToastOptions) => {
+    switch (type) {
+      case "success":
+        toast.success(message, options);
+        break;
+      case "error":
+        toast.error(message, options);
+        break;
+      case "info":
+        toast.info(message, options);
+        break;
+      case "warning":
+        toast.warning(message, options);
+        break;
+      default:
+        toast(message, options);
+    }
+  };
+
   return {
-    toast: sonnerToast,
-    // For compatibility with existing code that expects the toasts array
-    toasts: [],
+    toast: (message: string, options?: ToastOptions) => showToast("success", message, options),
+    success: (message: string, options?: ToastOptions) => showToast("success", message, options),
+    error: (message: string, options?: ToastOptions) => showToast("error", message, options),
+    warning: (message: string, options?: ToastOptions) => showToast("warning", message, options),
+    info: (message: string, options?: ToastOptions) => showToast("info", message, options),
+    dismiss: (toastId: string | number) => toast.dismiss(toastId),
   };
 };
 
