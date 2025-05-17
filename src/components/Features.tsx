@@ -30,7 +30,7 @@ const Features = () => {
     <div className="bg-blockloan-light py-16 md:py-24 dark:bg-[#0F0F10]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-blockloan-blue mb-4 dark:text-white">Why Choose BlockLoan?</h2>
+          <h2 className="text-3xl font-bold text-blockloan-blue mb-4 dark:text-white">Why Choose ZKfinance?</h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto dark:text-gray-300">
             Our platform leverages blockchain technology to create a transparent, efficient, and secure environment for small business lending.
           </p>

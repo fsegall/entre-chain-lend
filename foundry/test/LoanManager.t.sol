@@ -53,7 +53,7 @@ contract LoanManagerTest is Test {
         loanManager.repayLoan{value: repayment}(0);
 
         assertEq(borrower.balance, 10 ether - repayment);
-        assertEq(funder1.balance, 10 ether + (0.6 ether * 120) / 100);
-        assertEq(funder2.balance, 10 ether + (0.4 ether * 120) / 100);
+        assertEq(funder1.balance, 10 ether + (0.6 ether * 20) / 100);
+        assertEq(funder2.balance, 10 ether + (0.4 ether * 20) / 100);
     }
 }
