@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter as Router } from "react-router-dom";
@@ -7,6 +7,8 @@ import { DarkModeProvider } from "@/hooks/useDarkMode";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AppRoutes from "./routes";
+
+console.log("App.tsx: Module loaded");
 
 // Create a new QueryClient instance
 const queryClient = new QueryClient({
@@ -21,17 +23,21 @@ const queryClient = new QueryClient({
 });
 
 // Loading component
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blockloan-teal"></div>
-  </div>
-);
+const LoadingFallback = () => {
+  console.log("LoadingFallback: Rendering");
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blockloan-teal"></div>
+    </div>
+  );
+};
 
 // Error boundary for app-level errors
 class AppErrorBoundary extends React.Component<{ children: React.ReactNode }> {
   state = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: any) {
+    console.log("AppErrorBoundary: Error caught", error);
     return { hasError: true, error };
   }
 
@@ -41,6 +47,7 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }> {
 
   render() {
     if (this.state.hasError) {
+      console.log("AppErrorBoundary: Rendering error state");
       return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100">
           <div className="text-center p-8 bg-white rounded-lg shadow-lg">
@@ -62,14 +69,40 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }> {
 }
 
 const App = () => {
+  console.log("App: Component rendering");
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    console.log("App: useEffect running");
+    // Initialize app
+    const initialize = async () => {
+      console.log("App: Starting initialization");
+      try {
+        // Add any initialization logic here
+        console.log("App: Initialization complete");
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+      }
+    };
+
+    initialize();
+  }, []);
+
+  if (!isInitialized) {
+    console.log("App: Not initialized, showing loading");
+    return <LoadingFallback />;
+  }
+
+  console.log("App: Initialized, rendering main app");
   return (
     <AppErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <DarkModeProvider>
             <Router>
-              <Suspense fallback={<LoadingFallback />}>
-                <UnifiedAuthProvider>
+              <UnifiedAuthProvider>
+                <Suspense fallback={<LoadingFallback />}>
                   <AppRoutes />
                   <ToastContainer
                     position="top-center"
@@ -83,8 +116,8 @@ const App = () => {
                     pauseOnHover
                     theme="light"
                   />
-                </UnifiedAuthProvider>
-              </Suspense>
+                </Suspense>
+              </UnifiedAuthProvider>
             </Router>
           </DarkModeProvider>
         </TooltipProvider>

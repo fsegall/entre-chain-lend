@@ -42,29 +42,27 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
   }, [role]);
 
   useEffect(() => {
+    console.log("UnifiedAuthProvider: Starting initialization");
     setLoading(true);
     let mounted = true;
-
-    const clearStaleSession = async () => {
-      try {
-        // Clear any stale session data
-        setUser(null);
-        setSession(null);
-        localStorage.removeItem("userRole");
-        
-        // Force sign out from Supabase
-        await supabase.auth.signOut({ scope: 'local' });
-      } catch (error) {
-        console.error("Error clearing stale session:", error);
-      }
-    };
+    let initialCheckComplete = false;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
+      if (!mounted) {
+        console.log("UnifiedAuthProvider: Component unmounted, ignoring auth state change");
+        return;
+      }
 
-      console.log('Auth state changed:', event, session);
+      // Skip auth state changes until initial check is complete
+      if (!initialCheckComplete) {
+        console.log("UnifiedAuthProvider: Skipping auth state change - initial check not complete");
+        return;
+      }
+
+      console.log('UnifiedAuthProvider: Auth state changed:', event, session);
 
       if (event === 'SIGNED_OUT' || !session) {
+        console.log("UnifiedAuthProvider: User signed out or no session");
         setUser(null);
         setSession(null);
         localStorage.removeItem("userRole");
@@ -73,75 +71,73 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        console.log("UnifiedAuthProvider: User signed in or token refreshed");
         if (session) {
-          // Check if session is expired
-          const expiresAt = session.expires_at;
-          if (expiresAt && expiresAt * 1000 < Date.now()) {
-            console.log('Session expired, signing out');
-            await clearStaleSession();
-            return;
-          }
-
           setSession(session);
           try {
+            console.log("UnifiedAuthProvider: Fetching user profile");
             const { profile } = await fetchUserProfile(session.user.id);
             const formattedUser = formatUser(session.user, session);
+            console.log("UnifiedAuthProvider: Setting user state", formattedUser);
             setUser(formattedUser);
           } catch (error) {
-            console.error("Error fetching user profile:", error);
+            console.error("UnifiedAuthProvider: Error fetching user profile:", error);
             const formattedUser = formatUser(session.user, session);
             setUser(formattedUser);
           }
         }
       }
       
-      if (mounted) setLoading(false);
+      if (mounted) {
+        console.log("UnifiedAuthProvider: Setting loading to false");
+        setLoading(false);
+      }
     });
 
-    // Check for existing session on mount
-    const checkSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
+    // Initial session check
+    console.log("UnifiedAuthProvider: Checking initial session");
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) {
+        console.log("UnifiedAuthProvider: Component unmounted during session check");
+        return;
+      }
 
-        if (session) {
-          // Check if session is expired
-          const expiresAt = session.expires_at;
-          if (expiresAt && expiresAt * 1000 < Date.now()) {
-            console.log('Session expired, signing out');
-            await clearStaleSession();
-            return;
-          }
-
-          setSession(session);
-          try {
-            const { profile } = await fetchUserProfile(session.user.id);
+      if (session) {
+        console.log("UnifiedAuthProvider: Found existing session");
+        setSession(session);
+        fetchUserProfile(session.user.id)
+          .then(({ profile }) => {
+            if (!mounted) return;
+            console.log("UnifiedAuthProvider: Fetched user profile");
             const formattedUser = formatUser(session.user, session);
             setUser(formattedUser);
-          } catch (error) {
-            console.error("Error fetching user profile:", error);
+          })
+          .catch((error) => {
+            console.error("UnifiedAuthProvider: Error fetching user profile:", error);
+            if (!mounted) return;
             const formattedUser = formatUser(session.user, session);
             setUser(formattedUser);
-          }
-        } else {
-          setSession(null);
-          setUser(null);
-        }
-      } catch (error) {
-        console.error("Error checking session:", error);
+          })
+          .finally(() => {
+            if (mounted) {
+              console.log("UnifiedAuthProvider: Setting loading to false after profile fetch");
+              setLoading(false);
+              initialCheckComplete = true;
+            }
+          });
+      } else {
+        console.log("UnifiedAuthProvider: No existing session");
         setSession(null);
         setUser(null);
-      } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          initialCheckComplete = true;
+        }
       }
-    };
-
-    // Clear any stale session first
-    clearStaleSession().then(() => {
-      checkSession();
     });
 
     return () => {
+      console.log("UnifiedAuthProvider: Cleaning up");
       mounted = false;
       subscription.unsubscribe();
     };
