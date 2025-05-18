@@ -3,48 +3,27 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/UnifiedAuthProvider";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { supabase } from "@/lib/supabase";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { setIsLoggedIn } = useAuth();
+  const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     try {
-      // TODO: Add actual login logic here
-      console.log("Logging in with:", { email, password });
-      
-      // For now, just set logged in to true
-      setIsLoggedIn(true);
-      navigate('/dashboard');
-    } catch (err) {
+      await signIn(email, password);
+      navigate("/dashboard");
+    } catch (err: any) {
       setError("Failed to log in. Please check your credentials.");
       console.error("Login error:", err);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth-callback`
-        }
-      });
-
-      if (error) throw error;
-    } catch (err) {
-      setError("Failed to log in with Google.");
-      console.error("Google login error:", err);
     }
   };
 
@@ -121,7 +100,7 @@ const Login = () => {
               type="button"
               variant="outline"
               className="w-full border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-              onClick={handleGoogleLogin}
+              onClick={() => window.location.href = "/auth/google"}
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path
@@ -162,3 +141,4 @@ const Login = () => {
 };
 
 export default Login;
+

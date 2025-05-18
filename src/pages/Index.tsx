@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { handleApiError } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/UnifiedAuthProvider";
 
 // Memoize the featured loans data
 const FEATURED_LOANS: LoanProps[] = [

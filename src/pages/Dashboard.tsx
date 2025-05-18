@@ -1,4 +1,4 @@
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/UnifiedAuthProvider";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
