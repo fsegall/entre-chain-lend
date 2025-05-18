@@ -6,28 +6,48 @@ import { toast } from "react-toastify";
 const WalletConnect = memo(() => {
   const { user, connectWallet } = useAuth();
   const [isConnecting, setIsConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleConnect = useCallback(async () => {
-    if (!window.ethereum) {
-      toast.error("Please install MetaMask to connect your wallet");
-      return;
-    }
-
     try {
       setIsConnecting(true);
-      
+      setError(null);
+
+      if (!window.ethereum) {
+        throw new Error('MetaMask is not installed');
+      }
+
       // Request account access
       const accounts = await window.ethereum.request({ 
-        method: 'eth_requestAccounts' 
+        method: 'eth_requestAccounts'
       });
-      
-      if (accounts && accounts.length > 0) {
-        const address = accounts[0];
-        await connectWallet(address);
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts found');
       }
+
+      const address = accounts[0];
+      await connectWallet(address);
     } catch (error: any) {
-      console.error("Wallet connection error:", error);
-      toast.error(error.message || "Failed to connect wallet");
+      console.error('Failed to connect wallet:', error);
+      
+      // Handle user rejection specifically
+      if (error.code === 4001) {
+        setError('Connection request was rejected. Please try again.');
+      } else if (error.code === -32002) {
+        setError('Please check your MetaMask extension to approve the connection.');
+      } else {
+        setError(error.message || 'Failed to connect wallet');
+      }
+      
+      // Handle user rejection specifically
+      if (error.code === 4001) {
+        setError('Connection request was rejected. Please try again.');
+      } else if (error.code === -32002) {
+        setError('Please check your MetaMask extension to approve the connection.');
+      } else {
+        setError(error.message || 'Failed to connect wallet');
+      }
     } finally {
       setIsConnecting(false);
     }
@@ -50,20 +70,36 @@ const WalletConnect = memo(() => {
   const isConnected = Boolean(user.wallet_address);
 
   return (
-    <Button
-      onClick={isConnected ? handleDisconnect : handleConnect}
-      disabled={isConnecting}
-      variant={isConnected ? "outline" : "default"}
-      className="min-w-[120px]"
-    >
-      {isConnecting ? (
-        "Connecting..."
-      ) : isConnected ? (
-        "Disconnect"
+    <div className="flex flex-col items-center">
+      {!isConnected ? (
+        <Button
+          onClick={handleConnect}
+          disabled={isConnecting}
+          variant="default"
+          className="min-w-[120px]"
+        >
+          {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+        </Button>
       ) : (
-        "Connect Wallet"
+        <div className="flex flex-col items-center gap-2">
+          <div className="text-sm text-gray-600">
+            Connected: {user.wallet_address?.slice(0, 6)}...{user.wallet_address?.slice(-4)}
+          </div>
+          <Button
+            onClick={handleDisconnect}
+            variant="outline"
+            className="min-w-[120px]"
+          >
+            Disconnect
+          </Button>
+        </div>
       )}
-    </Button>
+      {error && (
+        <div className="mt-2 text-sm text-red-500">
+          {error}
+        </div>
+      )}
+    </div>
   );
 });
 
