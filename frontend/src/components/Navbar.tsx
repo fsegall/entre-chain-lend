@@ -11,16 +11,22 @@ import WalletConnect from './wallet/WalletConnect';
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const { isLoggedIn, setIsLoggedIn, role, setRole } = useAuth();
+  const { user, session, signOut, role, setRole } = useAuth();
 
-  const handleSignOut = () => {
-    setIsLoggedIn(false);
-    navigate('/');
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+      navigate('/');
+    }
   };
 
   const handleRoleToggle = (checked: boolean) => {
     setRole(checked ? 'lender' : 'borrower');
   };
+
+  const isAuthenticated = !!user && !!session;
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50 dark:bg-[#0F0F10] dark:border-b dark:border-gray-800">
@@ -43,7 +49,7 @@ const Navbar = () => {
                 <Link to="/about" className="px-3 py-2 rounded-md text-sm font-medium text-blockloan-gray hover:text-blockloan-teal dark:text-gray-300 dark:hover:text-blockloan-gold">
                   How It Works
                 </Link>
-                {isLoggedIn && (
+                {isAuthenticated && (
                   <Link to="/dashboard" className="px-3 py-2 rounded-md text-sm font-medium text-blockloan-gray hover:text-blockloan-teal dark:text-gray-300 dark:hover:text-blockloan-gold">
                     Dashboard
                   </Link>
@@ -55,7 +61,7 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-4">
             <DarkModeToggle />
             <WalletConnect />
-            {isLoggedIn && (
+            {isAuthenticated && (
               <div className="flex items-center space-x-2 mr-4">
                 <Label htmlFor="role-toggle" className="text-sm text-gray-600 dark:text-gray-300">
                   {role === 'lender' ? 'Lender' : 'Borrower'}
@@ -67,7 +73,7 @@ const Navbar = () => {
                 />
               </div>
             )}
-            {isLoggedIn ? (
+            {isAuthenticated ? (
               <Button 
                 variant="outline" 
                 className="border-blockloan-teal text-blockloan-teal dark:border-blockloan-gold dark:text-blockloan-gold"
@@ -101,13 +107,9 @@ const Navbar = () => {
             >
               <span className="sr-only">Open main menu</span>
               {!isMenuOpen ? (
-                <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+                <Menu className="h-6 w-6" />
               ) : (
-                <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="h-6 w-6" />
               )}
             </button>
           </div>
@@ -139,7 +141,7 @@ const Navbar = () => {
             >
               How It Works
             </Link>
-            {isLoggedIn && (
+            {isAuthenticated && (
               <Link
                 to="/dashboard"
                 className="block px-3 py-2 rounded-md text-base font-medium text-blockloan-gray hover:text-blockloan-teal dark:text-gray-300 dark:hover:text-blockloan-gold"
@@ -155,7 +157,7 @@ const Navbar = () => {
             </div>
             <div className="mt-3 px-2 space-y-1">
               <WalletConnect />
-              {isLoggedIn && (
+              {isAuthenticated && (
                 <div className="flex items-center space-x-2">
                   <Label htmlFor="role-toggle-mobile" className="text-sm text-gray-600 dark:text-gray-300">
                     {role === 'lender' ? 'Lender' : 'Borrower'}
@@ -167,7 +169,7 @@ const Navbar = () => {
                   />
                 </div>
               )}
-              {isLoggedIn ? (
+              {isAuthenticated ? (
                 <Button 
                   variant="outline" 
                   className="w-full mt-2 border-blockloan-teal text-blockloan-teal dark:border-blockloan-gold dark:text-blockloan-gold"

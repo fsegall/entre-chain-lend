@@ -20,7 +20,7 @@ const Login = () => {
 
     try {
       await signIn(email, password);
-      navigate("/dashboard");
+      // Don't navigate here - the auth state change will handle it
     } catch (err: any) {
       setError("Failed to log in. Please check your credentials.");
       console.error("Login error:", err);

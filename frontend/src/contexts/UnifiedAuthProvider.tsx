@@ -100,15 +100,30 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      
+      if (data.session) {
+        setSession(data.session);
+        try {
+          const { profile } = await fetchUserProfile(data.session.user.id);
+          const formattedUser = formatUser(data.session.user, data.session);
+          setUser(formattedUser);
+          navigate('/dashboard');
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          const formattedUser = formatUser(data.session.user, data.session);
+          setUser(formattedUser);
+          navigate('/dashboard');
+        }
+      }
     } catch (error: any) {
       toast.error(error.message || "Erro ao entrar.");
       throw error;
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
   const signInWithGoogle = useCallback(async () => {
     try {
@@ -151,6 +166,15 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // Clear local state
+      setUser(null);
+      setSession(null);
+      
+      // Clear role from localStorage
+      localStorage.removeItem("userRole");
+      
+      // Navigate after state is cleared
       navigate('/');
     } catch (error: any) {
       toast.error(error.message || "Erro ao sair.");
