@@ -193,17 +193,34 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
       const userId = data.user?.id;
       if (!userId) throw new Error("User ID não disponível após signUp.");
 
-      // Create profile
-      const { error: profileError } = await supabase
+      // Check if profile already exists
+      const { data: existingProfile, error: checkError } = await supabase
         .from("profiles")
-        .insert([{ id: userId, full_name: fullName }]);
+        .select("id")
+        .eq("id", userId)
+        .single();
 
-      if (profileError) throw profileError;
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      // Only create profile if it doesn't exist
+      if (!existingProfile) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .insert([{ id: userId, full_name: fullName }]);
+
+        if (profileError) throw profileError;
+      }
 
       toast.info("Verifique seu e-mail para confirmar o cadastro.");
       navigate('/login');
     } catch (error: any) {
-      toast.error(error.message || "Erro ao criar conta.");
+      if (error.code === '23505') {
+        toast.error("Este e-mail já está cadastrado.");
+      } else {
+        toast.error(error.message || "Erro ao criar conta.");
+      }
       throw error;
     } finally {
       if (mountedRef.current) setLoading(false);
