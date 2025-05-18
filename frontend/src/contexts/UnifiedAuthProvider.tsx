@@ -56,21 +56,28 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (session) {
-        setSession(session);
-        try {
-          const { profile } = await fetchUserProfile(session.user.id);
-          const formattedUser = formatUser(session.user, session);
-          setUser(formattedUser);
-        } catch (error) {
-          console.error("Error fetching user profile:", error);
-          const formattedUser = formatUser(session.user, session);
-          setUser(formattedUser);
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (session) {
+          setSession(session);
+          try {
+            const { profile } = await fetchUserProfile(session.user.id);
+            const formattedUser = formatUser(session.user, session);
+            setUser(formattedUser);
+            // Navigate to dashboard after successful sign in
+            navigate('/dashboard', { replace: true });
+          } catch (error) {
+            console.error("Error fetching user profile:", error);
+            const formattedUser = formatUser(session.user, session);
+            setUser(formattedUser);
+            // Navigate to dashboard even if profile fetch fails
+            navigate('/dashboard', { replace: true });
+          }
         }
-      } else {
+      } else if (!session) {
         setSession(null);
         setUser(null);
       }
+      
       if (mountedRef.current) setLoading(false);
     });
 
@@ -86,10 +93,14 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
             const { profile } = await fetchUserProfile(session.user.id);
             const formattedUser = formatUser(session.user, session);
             setUser(formattedUser);
+            // Navigate to dashboard if session exists on mount
+            navigate('/dashboard', { replace: true });
           } catch (error) {
             console.error("Error fetching user profile:", error);
             const formattedUser = formatUser(session.user, session);
             setUser(formattedUser);
+            // Navigate to dashboard even if profile fetch fails
+            navigate('/dashboard', { replace: true });
           }
         }
       } catch (error) {
@@ -105,7 +116,7 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
       mountedRef.current = false;
       subscription.unsubscribe();
     };
-  }, []); // Empty dependency array
+  }, [navigate]); // Add navigate to dependencies
 
   const signIn = useCallback(async (email: string, password: string) => {
     try {
