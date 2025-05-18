@@ -15,19 +15,23 @@ const AuthCallback = () => {
         if (error) throw error;
         
         if (currentSession) {
-          // Session is already handled by the auth context
-          navigate('/dashboard');
+          console.log('Auth callback: Session found, navigating to dashboard');
+          // Wait a bit to ensure state is updated
+          setTimeout(() => {
+            navigate('/dashboard', { replace: true });
+          }, 100);
         } else {
-          navigate('/login');
+          console.log('Auth callback: No session, navigating to login');
+          navigate('/login', { replace: true });
         }
       } catch (error) {
         console.error('Error handling auth callback:', error);
-        navigate('/login');
+        navigate('/login', { replace: true });
       }
     };
 
     handleAuthCallback();
-  }, [navigate, user, session]);
+  }, [navigate]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">
