@@ -1,17 +1,33 @@
-import { useState, useCallback, memo } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { toast } from "react-toastify";
+import React, { useState, useCallback, useRef } from 'react';
+import { useAuth } from '@/contexts/UnifiedAuthProvider';
+import { Button } from '@/components/ui/button';
+import { toast } from 'react-toastify';
 
-const WalletConnect = memo(() => {
-  const { user, connectWallet } = useAuth();
+interface WalletConnectProps {
+  onConnect?: (address: string) => void;
+  onDisconnect?: () => void;
+  onError?: (error: any) => void;
+}
+
+export const WalletConnect = React.memo(({ onConnect, onDisconnect, onError }: WalletConnectProps) => {
+  const { user } = useAuth();
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lastRequestTime = useRef<number>(0);
+  const COOLDOWN_PERIOD = 2000; // 2 seconds cooldown
 
   const handleConnect = useCallback(async () => {
     try {
+      // Check if we're in cooldown period
+      const now = Date.now();
+      if (now - lastRequestTime.current < COOLDOWN_PERIOD) {
+        setError('Please wait a moment before trying again.');
+        return;
+      }
+
       setIsConnecting(true);
       setError(null);
+      lastRequestTime.current = now;
 
       if (!window.ethereum) {
         throw new Error('MetaMask is not installed');
@@ -27,47 +43,37 @@ const WalletConnect = memo(() => {
       }
 
       const address = accounts[0];
-      await connectWallet(address);
+      onConnect?.(address);
     } catch (error: any) {
       console.error('Failed to connect wallet:', error);
       
-      // Handle user rejection specifically
+      // Handle specific error cases
       if (error.code === 4001) {
         setError('Connection request was rejected. Please try again.');
       } else if (error.code === -32002) {
         setError('Please check your MetaMask extension to approve the connection.');
+        // Add a longer cooldown for pending requests
+        lastRequestTime.current = Date.now() + 5000; // 5 seconds cooldown
       } else {
         setError(error.message || 'Failed to connect wallet');
       }
       
-      // Handle user rejection specifically
-      if (error.code === 4001) {
-        setError('Connection request was rejected. Please try again.');
-      } else if (error.code === -32002) {
-        setError('Please check your MetaMask extension to approve the connection.');
-      } else {
-        setError(error.message || 'Failed to connect wallet');
-      }
+      onError?.(error);
     } finally {
       setIsConnecting(false);
     }
-  }, [connectWallet]);
+  }, [onConnect, onError]);
 
-  const handleDisconnect = useCallback(async () => {
+  const handleDisconnect = useCallback(() => {
     try {
-      setIsConnecting(true);
-      await connectWallet(""); // Clear the wallet address
+      onDisconnect?.();
     } catch (error: any) {
-      console.error("Wallet disconnection error:", error);
-      toast.error(error.message || "Failed to disconnect wallet");
-    } finally {
-      setIsConnecting(false);
+      console.error('Failed to disconnect wallet:', error);
+      setError(error.message || 'Failed to disconnect wallet');
     }
-  }, [connectWallet]);
+  }, [onDisconnect]);
 
-  if (!user) return null;
-
-  const isConnected = Boolean(user.wallet_address);
+  const isConnected = !!user?.wallet_address;
 
   return (
     <div className="flex flex-col items-center">
@@ -102,7 +108,3 @@ const WalletConnect = memo(() => {
     </div>
   );
 });
-
-WalletConnect.displayName = 'WalletConnect';
-
-export default WalletConnect;
