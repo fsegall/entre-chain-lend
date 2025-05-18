@@ -28,9 +28,6 @@ export default defineConfig(({ mode }) => ({
       'version': '',
       'nextTick': (cb: any) => setTimeout(cb, 0),
     },
-    // Make sure Buffer is properly defined globally
-    'global.Buffer': ['buffer', 'Buffer'],
-    'Buffer': ['buffer', 'Buffer'],
   },
   optimizeDeps: {
     include: ['buffer'],
@@ -49,6 +46,7 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
+          buffer: ['buffer'],
         },
       },
     },
