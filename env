@@ -1,6 +1,6 @@
 
 VITE_SUPABASE_URL=https://tzpfzthlkuzeapftowxq.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6cGZ6dGhsa3V6ZWFwZnRvd3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0NDYyMTAsImV4cCI6MjA2MzAyMjIxMH0.k8EtG-y1jNG5y-CpCiQ3x8LdKNjQoFqUUH0rg_l-Sng
-VITE_AUTH_REDIRECT_URL=https://a99d5196-aa46-4ea6-ab0d-4c180ea1542d.lovableproject.com/auth-callback
+VITE_AUTH_REDIRECT_URL=https://entre-chain-lend.vercel.app/auth-callback
 SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/faca901f5f964535b01ff9cabfd64bb3
 PRIVATE_KEY=0x163385f5e097cc6f765dc36a9a5dc296a2d957114d0adb1428a34ffc3e54ebb1
