@@ -13,21 +13,44 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Ensure the client has proper configuration
-export const supabase = createClient<Database>(
-  supabaseUrl, 
-  supabaseAnonKey,
-  {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-      flowType: 'pkce'
-    },
-    global: {
-      headers: {
-        'x-application-name': 'entre-chain-lend'
+// Create a singleton instance with a unique storage key
+const STORAGE_KEY = 'entre-chain-lend-auth-v1';
+
+// Create a singleton instance
+let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
+
+export const supabase = (() => {
+  if (!supabaseInstance) {
+    supabaseInstance = createClient<Database>(
+      supabaseUrl, 
+      supabaseAnonKey,
+      {
+        auth: {
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true,
+          flowType: 'pkce',
+          storageKey: STORAGE_KEY,
+          storage: {
+            getItem: (key) => {
+              const value = localStorage.getItem(key);
+              return value ? JSON.parse(value) : null;
+            },
+            setItem: (key, value) => {
+              localStorage.setItem(key, JSON.stringify(value));
+            },
+            removeItem: (key) => {
+              localStorage.removeItem(key);
+            }
+          }
+        },
+        global: {
+          headers: {
+            'x-application-name': 'entre-chain-lend'
+          }
+        }
       }
-    }
+    );
   }
-);
+  return supabaseInstance;
+})();

@@ -1,21 +1,21 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/UnifiedAuthProvider';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const { setIsLoggedIn } = useAuth();
+  const { user, session } = useAuth();
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (error) throw error;
         
-        if (session) {
-          setIsLoggedIn(true);
+        if (currentSession) {
+          // Session is already handled by the auth context
           navigate('/dashboard');
         } else {
           navigate('/login');
@@ -27,7 +27,7 @@ const AuthCallback = () => {
     };
 
     handleAuthCallback();
-  }, [navigate, setIsLoggedIn]);
+  }, [navigate, user, session]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

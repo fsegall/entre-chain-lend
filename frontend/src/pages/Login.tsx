@@ -27,6 +27,15 @@ const Login = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      setError("Failed to sign in with Google.");
+      console.error("Google login error:", err);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -100,20 +109,7 @@ const Login = () => {
               type="button"
               variant="outline"
               className="w-full border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-              onClick={async () => {
-                try {
-                  const { error } = await supabase.auth.signInWithOAuth({
-                    provider: "google",
-                    options: {
-                      redirectTo: `${window.location.origin}/auth-callback`
-                    }
-                  });
-                  if (error) throw error;
-                } catch (err) {
-                  console.error("Google login error:", err);
-                }
-              }}
-              
+              onClick={handleGoogleSignIn}
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path

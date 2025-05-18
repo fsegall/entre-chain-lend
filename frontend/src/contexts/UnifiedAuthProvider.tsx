@@ -45,16 +45,17 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mountedRef.current) return;
+
       if (session) {
         setSession(session);
-        const formattedUser = formatUser(session.user, session);
-        setUser(formattedUser);
-
-        if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+        try {
           const { profile } = await fetchUserProfile(session.user.id);
-          if (mountedRef.current) {
-            setUser(prev => (prev ? { ...prev, ...profile } : null));
-          }
+          const formattedUser = formatUser(session.user, session);
+          setUser(formattedUser);
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          const formattedUser = formatUser(session.user, session);
+          setUser(formattedUser);
         }
       } else {
         setSession(null);
@@ -63,43 +64,46 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
       if (mountedRef.current) setLoading(false);
     });
 
+    // Check for existing session on mount
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+
+        if (session) {
+          setSession(session);
+          try {
+            const { profile } = await fetchUserProfile(session.user.id);
+            const formattedUser = formatUser(session.user, session);
+            setUser(formattedUser);
+          } catch (error) {
+            console.error("Error fetching user profile:", error);
+            const formattedUser = formatUser(session.user, session);
+            setUser(formattedUser);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
+      } finally {
+        if (mountedRef.current) setLoading(false);
+      }
+    };
+
+    checkSession();
+
     return () => {
       mountedRef.current = false;
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, []); // Empty dependency array
 
   const signIn = useCallback(async (email: string, password: string) => {
     try {
       setLoading(true);
-      await authService.signInWithEmail(email, password);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
     } catch (error: any) {
       toast.error(error.message || "Erro ao entrar.");
-      throw error;
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, []);
-
-  const signUp = useCallback(async (email: string, password: string, fullName: string) => {
-    try {
-      setLoading(true);
-      await authService.signUp(email, password, fullName);
-      toast.info("Verifique seu e-mail para confirmar o cadastro.");
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao criar conta.");
-      throw error;
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, []);
-
-  const signOut = useCallback(async () => {
-    try {
-      setLoading(true);
-      await authService.signOut();
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao sair.");
       throw error;
     } finally {
       if (mountedRef.current) setLoading(false);
@@ -109,7 +113,13 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     try {
       setLoading(true);
-      await authService.signInWithGoogle();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth-callback`
+        }
+      });
+      if (error) throw error;
     } catch (error: any) {
       toast.error(error.message || "Erro ao entrar com Google.");
       throw error;
@@ -121,7 +131,13 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
   const signInWithGithub = useCallback(async () => {
     try {
       setLoading(true);
-      await authService.signInWithGithub();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: `${window.location.origin}/auth-callback`
+        }
+      });
+      if (error) throw error;
     } catch (error: any) {
       toast.error(error.message || "Erro ao entrar com GitHub.");
       throw error;
@@ -129,6 +145,46 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
       if (mountedRef.current) setLoading(false);
     }
   }, []);
+
+  const signOut = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate('/');
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao sair.");
+      throw error;
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }, [navigate]);
+
+  const signUp = useCallback(async (email: string, password: string, fullName: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) throw error;
+
+      const userId = data.user?.id;
+      if (!userId) throw new Error("User ID não disponível após signUp.");
+
+      // Create profile
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert([{ id: userId, full_name: fullName }]);
+
+      if (profileError) throw profileError;
+
+      toast.info("Verifique seu e-mail para confirmar o cadastro.");
+      navigate('/login');
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao criar conta.");
+      throw error;
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }, [navigate]);
 
   const value = useMemo(() => ({
     user,
