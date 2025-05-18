@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn, signInWithGoogle, loading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,9 +20,8 @@ const Login = () => {
 
     try {
       await signIn(email, password);
-      // Don't navigate here - the auth state change will handle it
     } catch (err: any) {
-      setError("Failed to log in. Please check your credentials.");
+      setError(err.message || "Failed to log in. Please check your credentials.");
       console.error("Login error:", err);
     }
   };
@@ -31,7 +30,7 @@ const Login = () => {
     try {
       await signInWithGoogle();
     } catch (err: any) {
-      setError("Failed to sign in with Google.");
+      setError(err.message || "Failed to sign in with Google.");
       console.error("Google login error:", err);
     }
   };
@@ -57,6 +56,7 @@ const Login = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className="mt-1"
+                  autoComplete="email"
                 />
               </div>
               <div>
@@ -68,6 +68,7 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="mt-1"
+                  autoComplete="current-password"
                 />
               </div>
             </div>
@@ -78,20 +79,21 @@ const Login = () => {
 
             <div className="flex items-center justify-between">
               <div className="text-sm">
-                <a
-                  href="/forgot-password"
+                <Link
+                  to="/forgot-password"
                   className="font-medium text-blockloan-teal hover:text-blockloan-teal/80 dark:text-blockloan-gold dark:hover:text-blockloan-gold/80"
                 >
                   Forgot your password?
-                </a>
+                </Link>
               </div>
             </div>
 
             <Button
               type="submit"
               className="w-full bg-blockloan-blue text-white hover:bg-blockloan-blue/90 dark:bg-blockloan-teal dark:hover:bg-blockloan-teal/90"
+              disabled={loading}
             >
-              Sign in
+              {loading ? "Signing in..." : "Sign in"}
             </Button>
 
             <div className="relative">
@@ -110,6 +112,7 @@ const Login = () => {
               variant="outline"
               className="w-full border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
               onClick={handleGoogleSignIn}
+              disabled={loading}
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path
@@ -134,12 +137,12 @@ const Login = () => {
 
             <div className="text-center text-sm">
               Don't have an account?{" "}
-              <a
-                href="/signup"
+              <Link
+                to="/signup"
                 className="font-medium text-blockloan-teal hover:text-blockloan-teal/80 dark:text-blockloan-gold dark:hover:text-blockloan-gold/80"
               >
                 Sign up
-              </a>
+              </Link>
             </div>
           </form>
         </div>

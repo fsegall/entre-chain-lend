@@ -55,21 +55,41 @@ const MemoizedLoanCard = memo(LoanCard);
 
 const Index = () => {
   const navigate = useNavigate();
-  const { isLoggedIn } = useAuth();
+  const { user, loading } = useAuth();
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // Any API calls that might be causing the error should be wrapped in try/catch
-    const fetchData = async () => {
+    let mounted = true;
+
+    const initializeApp = async () => {
       try {
-        console.log("Safely initializing application data");
-        // If you're making API calls here, they should be wrapped in try/catch
+        if (!mounted) return;
+        
+        // Wait for auth state to be ready
+        if (loading) return;
+
+        console.log("Initializing application data");
+        setIsInitialized(true);
       } catch (error) {
-        handleApiError(error, "Failed to load application data");
+        console.error("Error initializing app:", error);
+        handleApiError(error, "Failed to initialize application");
       }
     };
 
-    fetchData();
-  }, []);
+    initializeApp();
+
+    return () => {
+      mounted = false;
+    };
+  }, [loading]);
+
+  if (!isInitialized || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blockloan-teal"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -111,7 +131,7 @@ const Index = () => {
             Join our platform today and start your journey in decentralized lending and borrowing.
           </p>
           <div className="flex justify-center gap-4">
-            {!isLoggedIn ? (
+            {!user ? (
               <>
                 <Button 
                   variant="outline" 
