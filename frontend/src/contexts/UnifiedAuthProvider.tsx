@@ -43,39 +43,59 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setLoading(true);
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mountedRef.current) return;
+    let mounted = true;
 
-      console.log('Auth state changed:', event, session);
-
-      if (event === 'SIGNED_OUT') {
+    const clearStaleSession = async () => {
+      try {
+        // Clear any stale session data
         setUser(null);
         setSession(null);
         localStorage.removeItem("userRole");
-        if (mountedRef.current) setLoading(false);
+        
+        // Force sign out from Supabase
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch (error) {
+        console.error("Error clearing stale session:", error);
+      }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
+      console.log('Auth state changed:', event, session);
+
+      if (event === 'SIGNED_OUT' || !session) {
+        setUser(null);
+        setSession(null);
+        localStorage.removeItem("userRole");
+        if (mounted) setLoading(false);
         return;
       }
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (session) {
+          // Check if session is expired
+          const expiresAt = session.expires_at;
+          if (expiresAt && expiresAt * 1000 < Date.now()) {
+            console.log('Session expired, signing out');
+            await clearStaleSession();
+            return;
+          }
+
           setSession(session);
           try {
             const { profile } = await fetchUserProfile(session.user.id);
             const formattedUser = formatUser(session.user, session);
             setUser(formattedUser);
-            // Don't navigate here - let the router handle it
           } catch (error) {
             console.error("Error fetching user profile:", error);
             const formattedUser = formatUser(session.user, session);
             setUser(formattedUser);
           }
         }
-      } else if (!session) {
-        setSession(null);
-        setUser(null);
       }
       
-      if (mountedRef.current) setLoading(false);
+      if (mounted) setLoading(false);
     });
 
     // Check for existing session on mount
@@ -85,12 +105,19 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
 
         if (session) {
+          // Check if session is expired
+          const expiresAt = session.expires_at;
+          if (expiresAt && expiresAt * 1000 < Date.now()) {
+            console.log('Session expired, signing out');
+            await clearStaleSession();
+            return;
+          }
+
           setSession(session);
           try {
             const { profile } = await fetchUserProfile(session.user.id);
             const formattedUser = formatUser(session.user, session);
             setUser(formattedUser);
-            // Don't navigate here - let the router handle it
           } catch (error) {
             console.error("Error fetching user profile:", error);
             const formattedUser = formatUser(session.user, session);
@@ -105,21 +132,27 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
         setSession(null);
         setUser(null);
       } finally {
-        if (mountedRef.current) setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
-    checkSession();
+    // Clear any stale session first
+    clearStaleSession().then(() => {
+      checkSession();
+    });
 
     return () => {
-      mountedRef.current = false;
+      mounted = false;
       subscription.unsubscribe();
     };
-  }, []); // Remove navigate from dependencies
+  }, []); // Empty dependency array
 
   const signIn = useCallback(async (email: string, password: string) => {
     try {
       setLoading(true);
+      // Clear any existing session first
+      await supabase.auth.signOut({ scope: 'local' });
+      
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       
