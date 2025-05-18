@@ -63,14 +63,11 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
             const { profile } = await fetchUserProfile(session.user.id);
             const formattedUser = formatUser(session.user, session);
             setUser(formattedUser);
-            // Navigate to dashboard after successful sign in
-            navigate('/dashboard', { replace: true });
+            // Don't navigate here - let the router handle it
           } catch (error) {
             console.error("Error fetching user profile:", error);
             const formattedUser = formatUser(session.user, session);
             setUser(formattedUser);
-            // Navigate to dashboard even if profile fetch fails
-            navigate('/dashboard', { replace: true });
           }
         }
       } else if (!session) {
@@ -93,18 +90,20 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
             const { profile } = await fetchUserProfile(session.user.id);
             const formattedUser = formatUser(session.user, session);
             setUser(formattedUser);
-            // Navigate to dashboard if session exists on mount
-            navigate('/dashboard', { replace: true });
+            // Don't navigate here - let the router handle it
           } catch (error) {
             console.error("Error fetching user profile:", error);
             const formattedUser = formatUser(session.user, session);
             setUser(formattedUser);
-            // Navigate to dashboard even if profile fetch fails
-            navigate('/dashboard', { replace: true });
           }
+        } else {
+          setSession(null);
+          setUser(null);
         }
       } catch (error) {
         console.error("Error checking session:", error);
+        setSession(null);
+        setUser(null);
       } finally {
         if (mountedRef.current) setLoading(false);
       }
@@ -116,7 +115,7 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
       mountedRef.current = false;
       subscription.unsubscribe();
     };
-  }, [navigate]); // Add navigate to dependencies
+  }, []); // Remove navigate from dependencies
 
   const signIn = useCallback(async (email: string, password: string) => {
     try {
@@ -130,12 +129,12 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
           const { profile } = await fetchUserProfile(data.session.user.id);
           const formattedUser = formatUser(data.session.user, data.session);
           setUser(formattedUser);
-          navigate('/dashboard');
+          navigate('/dashboard', { replace: true });
         } catch (error) {
           console.error("Error fetching user profile:", error);
           const formattedUser = formatUser(data.session.user, data.session);
           setUser(formattedUser);
-          navigate('/dashboard');
+          navigate('/dashboard', { replace: true });
         }
       }
     } catch (error: any) {
