@@ -8,7 +8,11 @@ import ResetPassword from "./pages/ResetPassword";
 import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
+
 const AppRoutes = () => {
+  
+
+
   return (
     <Routes>
       <Route path="/" element={<Index />} />
