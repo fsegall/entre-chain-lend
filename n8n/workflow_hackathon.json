@@ -1,0 +1,162 @@
+{
+  "name": "workflow_hackathon",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "credit-analysis",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook de Entrada",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "55fedade-85b4-4873-a7e3-0701cfdc41e1",
+      "webhookId": "e5b897a3-dc3d-420f-a44d-e0383ba4b97c"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Recebe os dados do usuário do nó anterior\nlet userData = $input.item.json[0];\n\n// Verificação de segurança: se userData for undefined, cria um objeto vazio\nif (!userData) {\n  userData = {};\n  console.log('Aviso: Dados do usuário não encontrados. Usando valores padrão.');\n}\n\n// Implementação do algoritmo de cálculo de score com verificações de segurança\nfunction calculateCreditScore(userData) {\n  let score = 500; // Score base\n  \n  // Fatores que podem aumentar o score (com verificações de segurança)\n  if (userData.income && userData.income > 5000) score += 100;\n  if (userData.employment_years && userData.employment_years > 2) score += 50;\n  if (userData.has_property === true) score += 70;\n  \n  // Fatores que podem diminuir o score (com verificações de segurança)\n  if (userData.has_debt === true) score -= 80;\n  if (userData.payment_defaults && userData.payment_defaults > 0) score -= 100;\n  \n  // Garantir que o score esteja dentro dos limites (300-850)\n  return Math.max(300, Math.min(850, score));\n}\n\n// Definir o threshold (limite mínimo para aprovação)\nconst threshold = 650;\n\n// Calcular o score\nconst score = calculateCreditScore(userData);\n\n// Verificar se passou no threshold\nconst passed = score >= threshold;\n\n// Registrar informações para debug\nconsole.log('Dados do usuário:', JSON.stringify(userData));\nconsole.log('Score calculado:', score);\nconsole.log('Threshold:', threshold);\nconsole.log('Passou:', passed);\n\n// Retornar o resultado\nreturn {\n  score: score,\n  threshold: threshold,\n  passed: passed\n};\n"
+      },
+      "name": "Cálculo do Score",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ],
+      "id": "41999bb1-ac88-4e93-9be7-8eb067c0cdba"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Recebe o resultado do cálculo do score\nconst scoreResult = $input.item.json;\n\n// Formata a resposta para o webhook de saída\nconst webhookResponse = {\n  score: scoreResult.score,\n  threshold: scoreResult.threshold,\n  passed: scoreResult.passed\n};\n\n// Formata a resposta para integração com zk-credit\nconst zkCreditInput = {\n  score: String(scoreResult.score),\n  threshold: String(scoreResult.threshold)\n};\n\n// Retorna ambos os formatos\nreturn {\n  webhookResponse: webhookResponse,\n  zkCreditInput: zkCreditInput\n};"
+      },
+      "name": "Formatação da Resposta",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        600,
+        0
+      ],
+      "id": "c72f6de3-b75d-446e-b9b4-b1acf97fee28"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "profiles"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "cadc5410-26f4-4dd1-8e95-8b05309fab03",
+      "name": "Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "R7ZuuhLTgMRz4yPi",
+          "name": "Supabase_Hackathon"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        860,
+        120
+      ],
+      "id": "db7cf304-d815-4ea2-88b7-85a85af4af21",
+      "name": "Webhook de Saída1"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        860,
+        -100
+      ],
+      "id": "7c445716-eece-4ae5-a524-7e8479c5b4ca",
+      "name": "Webhook para ZK-Credit1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook de Entrada": {
+      "main": [
+        [
+          {
+            "node": "Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cálculo do Score": {
+      "main": [
+        [
+          {
+            "node": "Formatação da Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatação da Resposta": {
+      "main": [
+        [
+          {
+            "node": "Webhook para ZK-Credit1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook de Saída1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase": {
+      "main": [
+        [
+          {
+            "node": "Cálculo do Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook para ZK-Credit1": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "fcfd7438-a60d-4110-93e8-3cb8444b3128",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "45c0fb44c009398f9c6fe1f26db33852353ecd60acd1942b0b20ac66b72f5679"
+  },
+  "id": "85rUkBmtYi3StmeF",
+  "tags": []
+}
