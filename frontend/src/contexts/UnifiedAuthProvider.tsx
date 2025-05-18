@@ -46,6 +46,16 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mountedRef.current) return;
 
+      console.log('Auth state changed:', event, session);
+
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setSession(null);
+        localStorage.removeItem("userRole");
+        if (mountedRef.current) setLoading(false);
+        return;
+      }
+
       if (session) {
         setSession(session);
         try {
@@ -164,21 +174,24 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      // Clear local state
+      // Clear local state first
       setUser(null);
       setSession(null);
-      
-      // Clear role from localStorage
       localStorage.removeItem("userRole");
       
-      // Navigate after state is cleared
+      // Sign out from Supabase with scope: 'local'
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      if (error) throw error;
+      
+      // Navigate after everything is cleared
       navigate('/');
     } catch (error: any) {
-      toast.error(error.message || "Erro ao sair.");
-      throw error;
+      console.error('Sign out error:', error);
+      // Even if there's an error, we should still clear local state and navigate
+      setUser(null);
+      setSession(null);
+      localStorage.removeItem("userRole");
+      navigate('/');
     } finally {
       if (mountedRef.current) setLoading(false);
     }
