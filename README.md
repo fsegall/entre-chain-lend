@@ -1,120 +1,100 @@
-# Entre-Chain Lend
+# 🤝 entre-chain-lend — MVP de Plataforma Descentralizada de Empréstimos com ZK Proofs ###[`Ler no GitHub Pages`](https://fsegall.github.io/the_lenders/)
 
-A decentralized lending platform built with React, TypeScript, and Supabase.
+Este projeto é um MVP para uma plataforma que conecta pequenos empreendedores a financiadores, utilizando contratos inteligentes, provas ZK de análise de crédito e verificação de elegibilidade com preservação de privacidade.
 
-## Project Structure
+---
 
-The project is organized into two main directories:
+## 🧱 [`Arquitetura Modular`](Arquitetura.png)
 
-### Frontend (`/frontend`)
-Contains the React/Vite application. See [frontend/README.md](frontend/README.md) for detailed setup instructions.
+| Módulo             | Descrição |
+|--------------------|-----------|
+| [`frontend/`](README-frontend.md) | Aplicação React que permite criação de pedidos e visualização de oportunidades de empréstimo. Integra com contratos e Supabase. |
+| [`zk-credit/`](README-zk-credit.md)      | Circuitos Circom e provas ZK para comprovar score de crédito ≥ threshold sem revelar o valor. |
+| [`supabase/`](README-supabase.md)        | Backend com banco de dados PostgreSQL, autenticação Web3 e edge functions para verificação (incluindo ZKVerify). |
+| [`foundry/`](README-foundry.md)         | (A ser adicionado) Contrato inteligente de empréstimo. Desenvolvimento, testes e deploy com Foundry. |
+| [`credit-agent/`](README-credit-agent.md)    | (A ser adicionado) Agente de análise de crédito usando N8N, responsável por calcular o score a partir de dados e retornar ao app. |
 
-### Supabase (`/supabase`)
-Contains all Supabase-related configurations:
-- Database migrations
-- Edge Functions
-- Database policies and triggers
-- Type definitions
+---
 
-## Getting Started
+## 🔁 Fluxo da Plataforma
 
-1. Clone the repository
-2. Set up the frontend:
-   ```bash
-   cd frontend
-   npm install
-   # Create .env file with required variables
-   npm run dev
-   ```
-3. Set up Supabase:
-   - Create a new Supabase project
-   - Run the migrations in the `supabase/migrations` directory
-   - Configure environment variables in the frontend
+1. O empreendedor se cadastra e solicita um empréstimo.
+2. O agente `credit-agent` calcula o `score` e envia ao frontend.
+3. O frontend gera a prova ZK (`zk-credit`) localmente.
+4. A prova é enviada para a `Edge Function` no Supabase.
+5. A Edge Function usa o `ZKVerify` para verificar a validade da prova.
+6. Empréstimos são registrados no contrato (via módulo `foundry`).
+7. Supabase registra todas as ações e estados da aplicação.
 
-## Development
+---
 
-- Frontend development: See [frontend/README.md](frontend/README.md)
-- Database changes: Add new migrations in `supabase/migrations`
-- Edge Functions: Add new functions in `supabase/functions`
+## 🧪 Módulo ZK: zk-credit
 
-## Contributing
+Veja a [documentação do módulo zk-credit](README-zk-credit.md) para:
 
-1. Create a new branch for your feature
-2. Make your changes
-3. Submit a pull request
+- Compilação de circuitos
+- Geração de provas
+- Verificação local e mock de ZKVerify
 
-## License
+---
 
-MIT
+## ⚙️ [`Supabase`](er_diagram.png)
 
-## Project info
+A estrutura de banco de dados inclui:
 
-**URL**: https://lovable.dev/projects/a99d5196-aa46-4ea6-ab0d-4c180ea1542d
+- Tabela `profiles` com controle de papeis
+- Autenticação com carteiras Web3
+- Regras RLS configuradas via `migrations/`
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/a99d5196-aa46-4ea6-ab0d-4c180ea1542d) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+Scripts de funções e edge functions estão em:
+```
+supabase/
+├── functions/         # Funções autenticadas
+├── edge-functions/    # Funções blockchain + ZKVerify
+├── migrations/        # SQL das estruturas e RLS
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🤖 credit-agent (análise de crédito com N8N)
 
-**Use GitHub Codespaces**
+Este módulo será responsável por:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- Acessar dados relevantes (KYC, transações, perfil)
+- Calcular o `score` de forma automatizada
+- Enviar o score para a interface do app ou backend
+- Integrar com webhook ou Supabase REST para persistência
 
-## What technologies are used for this project?
+---
 
-This project is built with:
+## 📦 Contrato Inteligente (Foundry)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+O módulo a ser incluído em `foundry/` conterá:
 
-## How can I deploy this project?
+- Contrato para registro e fluxo de empréstimo
+- Verificação de elegibilidade via ZK
+- Controle de reembolso e juros
+- Testes automatizados com forge
 
-Simply open [Lovable](https://lovable.dev/projects/a99d5196-aa46-4ea6-ab0d-4c180ea1542d) and click on Share -> Publish.
+---
 
-## Can I connect a custom domain to my Lovable project?
+## 🛠️ Stack Utilizada
 
-Yes, you can!
+- React + Viem
+- Supabase (PostgreSQL, Auth, Storage, Edge Functions)
+- Circom + snarkjs
+- ZKVerify (via API externa)
+- Foundry (Solidity)
+- N8N (automação com agentes)
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+---
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## [`🧪 Como contribuir`](roadmap.md)
+
+Clone o projeto, instale as dependências em cada módulo, e siga os respectivos READMEs. Cada módulo é autônomo, mas se comunica com os demais via APIs, contratos e banco.
+
+---
+
+## 🧠 Autores
+
+Desenvolvido por **Felipe Segall**, **Fêlix Rock Rodrigues**, **Paulo Marinato** para o ZK Hackathon com foco em soluções de impacto social e privacidade.

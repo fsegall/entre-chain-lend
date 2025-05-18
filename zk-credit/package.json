@@ -2,10 +2,10 @@
   "name": "zk-credit",
   "version": "1.0.0",
   "scripts": {
-    "start": "node scripts/index.js",
-    "dev": "node --watch scripts/index.js",
-    "test": "node --test",
-    "prove": "node zk-mock/mock-verify.js"
+    "setup": "bash scripts/setup.sh",
+    "compile": "circom circuits/credit_score.circom --r1cs --wasm --sym -l circomlib -o build",
+    "generate": "node scripts/generateProofAndHash.js",
+    "verify": "node zk-mock/mock-verify.js"
   },
   "dependencies": {
     "circomlib": "^2.0.5",
