@@ -11,7 +11,7 @@ Este projeto é um MVP para uma plataforma que conecta pequenos empreendedores a
 | [`frontend/`](README-frontend.md) | Aplicação React que permite criação de pedidos e visualização de oportunidades de empréstimo. Integra com contratos e Supabase. |
 | [`zk-credit/`](README-zk-credit.md)      | Circuitos Circom e provas ZK para comprovar score de crédito ≥ threshold sem revelar o valor. |
 | [`supabase/`](README-supabase.md)        | Backend com banco de dados PostgreSQL, autenticação Web3 e edge functions para verificação (incluindo ZKVerify). |
-| [`foundry/`](README-foundry.md)         | (A ser adicionado) Contrato inteligente de empréstimo. Desenvolvimento, testes e deploy com Foundry. |
+| [`foundry/`](README-foundry.md)         | Contrato inteligente de empréstimo. Desenvolvimento, testes e deploy com Foundry. |
 | [`credit-agent/`](README-credit-agent.md)    | (A ser adicionado) Agente de análise de crédito usando N8N, responsável por calcular o score a partir de dados e retornar ao app. |
 
 ---
