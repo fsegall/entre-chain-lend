@@ -1,4 +1,4 @@
-# 🗄️ Módulo `supabase/` — Backend com Postgres, Auth e Edge Functions
+# 🗄️ Módulo `supabase/` — Backend com Postgres, Auth e Edge Functions 
 
 Este módulo representa o backend completo da aplicação, utilizando a stack do Supabase com PostgreSQL, autenticação Web3, políticas RLS e funções serverless.
 
