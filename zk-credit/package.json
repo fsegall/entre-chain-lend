@@ -5,11 +5,13 @@
     "setup": "bash scripts/setup.sh",
     "compile": "circom circuits/credit_score.circom --r1cs --wasm --sym -l circomlib -o build",
     "generate": "node scripts/generateProofAndHash.js",
-    "verify": "node zk-mock/mock-verify.js"
+    "verify": "node zk-mock/mock-verify.js",
+    "zk-verify": "node scripts/submitZKVerifyTestnet.js"
   },
   "dependencies": {
     "circomlib": "^2.0.5",
     "circomlibjs": "^0.1.7",
+    "node-fetch": "^3.3.2",
     "snarkjs": "^0.7.0"
   },
   "devDependencies": {
