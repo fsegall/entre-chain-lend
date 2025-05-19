@@ -1,4 +1,4 @@
-# ⚖️ Módulo `foundry/` — Contrato Inteligente de Empréstimo
+# ⚖️ Módulo `foundry/` — Contrato Inteligente de Empréstimo 
 
 Este módulo conterá o contrato inteligente responsável por formalizar e executar os empréstimos da plataforma entre-chain-lend. Utiliza o framework [Foundry](https://book.getfoundry.sh/) para desenvolvimento, teste e deploy em redes EVM.
 
