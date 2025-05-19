@@ -1,9 +1,9 @@
 const fs = require("fs");
 const fetch = require("node-fetch");
 
-const ZKVERIFY_URL = "https://testnet.api.zkverify.com/verify"; // Atualize se necessário
+const ZKVERIFY_URL = "zkverify-testnet.api.subscan.io"; // Atualize se necessário
 const CIRCUIT_ID = "seu-circuit-id-aqui"; // Substitua pelo ID real
-const API_KEY = process.env.ZKVERIFY_API_KEY || "";
+const API_KEY = process.env.ZKVERIFY_API_KEY || "23b1af4eb571412495b91970eef7201c";
 
 async function submitProof() {
   try {
