@@ -69,8 +69,6 @@ Este módulo será responsável por:
 
 ## 📦 Contrato Inteligente (Foundry)
 
-O módulo a ser incluído em `foundry/` conterá:
-
 - Contrato para registro e fluxo de empréstimo
 - Verificação de elegibilidade via ZK
 - Controle de reembolso e juros
